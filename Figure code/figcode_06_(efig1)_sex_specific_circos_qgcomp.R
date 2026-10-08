@@ -4,7 +4,7 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
 
 ## 设置人群名称 ##
 
@@ -23,28 +23,27 @@ rdbu_colors <- colorRampPalette(colors = rdbu_colors)(21)
 # 提取 BrBG 的 11 种颜色
 brbg_colors <- RColorBrewer::brewer.pal(11, "BrBG")
 brbg_colors <- colorRampPalette(colors = brbg_colors)(41)
-# # 查看颜色梯度
-# scales::show_col(rdbu_colors)
-
 # 设置11种sector颜色
 sector_colors <- colorRampPalette(colors = c("#b71540", "#eb2f06", "#fa8231", "#fed330", "#26de81", "#45aaf2", "#cd84f1", "#7158e2"))(11)
 #### 配色 ####
 
 #### 变量整理 ----
-# 菌群2014菌群 (分类和连续)
-# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
-# 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
-mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
+# # 菌群2014菌群 (分类和连续)
+# # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+# mp4_s_names <- colnames(micro_dat)[3:361]
+# mp4_g_names <- colnames(micro_dat)[721:912]
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+# mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# 
+# # 转换后的菌的名称
+# mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+# mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+# 
+# mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+# mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
-mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -77,44 +76,34 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
-                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b",
-                    
-                    # "smk1_f","drk1_f","paactive3_g_f",
-                    
-                    "sitduration_f","sitduration_b","sleeptg_f",
-                    "dm_treat_f","dm_treat_b","hpt_treat_f","hpt_treat_b","hpl_treat_f","hpl_treat_b",
-                    "diet_score_g_f","high_fruveg_f","low_ssb_f","low_meat_f","high_fish_f")
+                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
-                     "nlr_f","lmr_f","plr_f","sii_f","siri_f",
-                     
-                     "sleept_f","sittimet_f","sittimet_b","sum_met_f","sum_met_b",
-                     "alco_f","alco_b","diet_score_f")
+                     "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -122,13 +111,7 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
 #### 数据处理 (for circos heatmap & forest plot) ----
@@ -144,16 +127,13 @@ outcome <- c("dm_incident_1014","ckd_incident_1014","cvd_incident_1021","cvd_inc
              "bmi_b","height_b","weight_b","whr_b","wc_b","hc_b",
              "tg_b","ldl_b","hdl_b","chol_b","apoa_b","apob_b","nonhdl_b",
              "alt_b","ast_b","ggt_b","bia_b",
-             "egfr_b","scr_b","ua_b", #"acr_b",
+             "egfr_b","scr_b","ua_b",
              "glu0_b","glu120_b","vhba1c_b",
              "ins0_b","ins120_b","homair_b","homab_b",
-             "sbp_b","dbp_b","pr_b", # 2026.02.13 备注: 脉率(Pulse Rate，PR)不是脉压差 #
+             "sbp_b","dbp_b","pr_b",
              "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
              "hgb_b","plt_b","eos_f","lym_f","mon_f","neu_f",
              "nlr_f","lmr_f","plr_f","sii_f","siri_f","wbc_b","crp_f")
-             # "diet_score_f","high_fruveg","high_fish_f","low_meat_f","low_ssb_f",
-             # "smk1_b","drk1_b","paactive3_g_b","sum_met_b","sleept_f","sitduration_b","sittimet_b",
-             # "high_edu_b","sex_b_rev","age_b")  # 重要，分析中(men=0,women=1)women为保护因素，但我希望图表中关系统一，别的结局都是正向的，因此这里使用sex_b_rev (women=0,men=1)
 outcome_final <- outcome
 # 标准化名称
 outcome_label <- c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2021)","Incident CVD (2010-2014)",
@@ -161,32 +141,18 @@ outcome_label <- c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","I
                    "BMI","Height","Weight","WHR","WC","HC",
                    "TG","LDL-C","HDL-C","TC","ApoA-1","ApoB","Non-HDL-C",
                    "ALT","AST","GGT","Bile acid",
-                   "eGFR","Serum creatinine","UA", #"UACR",
+                   "eGFR","Serum creatinine","UA",
                    "OGTT 0-h glucose","OGTT 2-h glucose","HbA1c",
                    "OGTT 0-h insulin","OGTT 2-h insulin","HOMA-IR","HOMA-B",
-                   "SBP","DBP","PR", # 2026.02.13 备注: 脉率(Pulse Rate，PR)不是脉压差 #
+                   "SBP","DBP","PR",
                    "FT3","FT4","TSH","TPOAb","TgAb",
                    "Hemoglobin","Platelet count","Eosinophil count","Lymphocyte count","Monocyte count","Neutrophil count",
                    "NLR","LMR","PLR","SII","SIRI","WBC","Hs-CRP")
 
-# outcome_label <- c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2021)","Incident CVD (2010-2014)",
-#                    "Diabetes (2010)","CKD (2010)","CVD (2010)","Obesity (2010)","Abdominal obesity (2010)","IR (2010)","Dyslipidemia (2010)","MetS (2010)","NAFLD (2010)","High UA (2010)","Hypertension (2010)","High CIMT (2010)",
-#                    "BMI (2010)","Height (2010)","Weight (2010)","WHR (2010)","WC (2010)","HC (2010)",
-#                    "TG (2010)","LDL-C (2010)","HDL-C (2010)","TC (2010)","ApoA-1 (2010)","ApoB (2010)","non-HDL-C (2010)",
-#                    "ALT (2010)","AST (2010)","GGT (2010)","Bile acid (2010)",
-#                    "eGFR (2010)","Serum creatinine (2010)","UA (2010)", "UACR (2010)",
-#                    "OGTT 0-h glucose (2010)","OGTT 2-h glucose (2010)","HbA1c (2010)",
-#                    "OGTT 0-h insulin (2010)","OGTT 2-h insulin (2010)","HOMA-IR (2010)","HOMA-B (2010)",
-#                    "SBP (2010)","DBP (2010)","PR (2010)", # 2026.02.13 备注: 脉率(Pulse Rate，PR)不是脉压差 #
-#                    "FT3 (2014)","FT4 (2014)","TSH (2014)","TPOAb (2014)","TgAb (2014)",
-#                    "Hemoglobin (2010)","Platelet count (2010)","Eosinophil count (2014)","Lymphocyte count (2014)","Monocyte count (2014)","Neutrophil count (2014)",
-#                    "NLR (2014)","LMR (2014)","PLR (2014)","SII (2014)","SIRI (2014)","WBC (2010)","Hs-CRP (2014)")
-                   
-
 # 读取数据 (总人群)
-results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,")_20260702.xlsx"))
+results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,").xlsx"))
 # 读取数据 (总人群)
-results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,")_20260702.xlsx"))
+results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,").xlsx"))
 
 results_qg <- rbind(results_qg_all1, results_qg_edc1) %>%
   filter(exp %in% exposure & out %in% outcome_final)
@@ -231,7 +197,6 @@ dat_qgcomp_weight <- dat_qgcomp_weight[!dat_qgcomp_weight$out %in% c("Incident C
 ## QGCOMP 关联性
 # 转换为wide格式data
 dat_qgcomp_corr_3cols <- dat_qgcomp_corr
-# dat_qgcomp_corr_3cols$z <- dat_qgcomp_corr_3cols$estimate
 dat_qgcomp_corr_3cols <- dat_qgcomp_corr_3cols[,c("exp","out","z")]
 # 由于有过大值和过小值，因此对原本数值再进行一次转换，减少数值间差异
 dat_qgcomp_corr_3cols$z <- asinh(dat_qgcomp_corr_3cols$z) # 反双曲正弦变换（asinh）， 适用于正负值混合的数据，尤其适合处理尾部极端值，效果类似对数变换但对零值更平滑。
@@ -247,11 +212,8 @@ dat_qgcomp_p_3cols <- dat_qgcomp_corr[,c("exp","out","p_adj_bh")]
 dat1_p <- tidyr::pivot_wider(dat_qgcomp_p_3cols, names_from = exp, values_from = p_adj_bh) # 转换为行为“out”列为“exp”
 dat1_p <- data.frame(dat1_p, check.names = FALSE)  # 禁止自动修改列名
 rownames(dat1_p) <- dat1_p$out
-# dat1_p <- as.character(dat1_p)
 dat1_p <- dat1_p[,-1]
 dat1_p_mat <- as.matrix(dat1_p)
-# dat1_p_mat[dat1_p_mat < 0.05] <- "*"
-# dat1_p_mat[dat1_p_mat != "*"] <- " "
 dat1_mat[dat1_p_mat >= 0.05] <- NA
   
 # 把weight数据转换为long data排序
@@ -263,9 +225,7 @@ dat_qgcomp_weight2_long$edc <- factor(dat_qgcomp_weight2_long$edc, levels = c("P
                                                                               "BPA","BPS","BPF"))
 dat_qgcomp_weight2_long <- dat_qgcomp_weight2_long %>%
   arrange(edc)
-# # 由于有过大值和过小值，因此对原本数值再进行一次转换，减少数值间差异
-# dat_qgcomp_weight2_long$weight <- asinh(dat_qgcomp_weight2_long$weight) # 反双曲正弦变换（asinh）， 适用于正负值混合的数据，尤其适合处理尾部极端值，效果类似对数变换但对零值更平滑。
-# # 由于有过大值和过小值，因此对原本数值再进行一次log转换，减少数值间差异
+
 dat2 <- tidyr::pivot_wider(dat_qgcomp_weight2_long, names_from = edc, values_from = weight) # 转换为行为“out”列为“edc”
 dat2 <- dat2[,-1]
 dat2 <- data.frame(dat2, check.names = FALSE)  # 禁止自动修改列名
@@ -278,7 +238,6 @@ phenotypes <- c("Disorder and disease",
                 "Liver function","Kidney function",
                 "Glucose metabolism","Insulin metabolism","Blood pressure",
                 "Thyroid function","Hematological trait","Inflammation")
-                # "Dietary factor","Lifestyle behavior","Demographic factor")
 phenotypes[1]
 split <- factor(c(rep(phenotypes[1],12),
                   rep(phenotypes[2],6),rep(phenotypes[3],7),
@@ -286,26 +245,26 @@ split <- factor(c(rep(phenotypes[1],12),
                   rep(phenotypes[6],3),rep(phenotypes[7],4),
                   rep(phenotypes[8],3),rep(phenotypes[9],5),
                   rep(phenotypes[10],6),rep(phenotypes[11],7)),
-                  # rep(phenotypes[12],5),rep(phenotypes[13],7),
-                  # rep(phenotypes[14],3)),
-                
                 levels = phenotypes)
 
 
 ### 作图 ###
-pdf(paste0("figures/supplementary_figures/circos_heatmap_edc_outcomes_sex_specific_(",sample_name,")_20260714.pdf"), width = 9, height = 9)  # 由于20260702更新了incident dm，但是性别特异性qgcomp分析不涉及这个结局，因此图与20260313结果相同
+if(sample_name == "phy_edc_temp0_1"){
+  pdf(paste0("figures/supplementary_figures/(efig1a)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
+}
+
+if(sample_name == "phy_edc_temp0_2"){
+  pdf(paste0("figures/supplementary_figures/(efig1b)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
+}
 
 circos.par(start.degree = 90, 
            points.overflow.warning = FALSE,
-           # cell.padding = c(0.02, 0, 0.02, 0), # 控制每个热图单元格（cell）内部的边距（padding）
            track.margin = c(0.008, 0.005),
            gap.degree = c(rep(2,10),90)) # change to 1 to number of sector - 1
 
 # 设置外圈颜色
 corr_min <- min(dat1_mat,na.rm = TRUE)
 corr_max <- max(dat1_mat,na.rm = TRUE)
-# col_corr = colorRamp2(c(corr_min, 0, corr_max), c("#1082bd","white","#E63E56")) #外圈beta的取值范围
-# col_corr = colorRamp2(c(corr_min, 0, corr_max), c("#369acc","#FFFFFF","#de324c")) #外圈beta的取值范围
 # 创建颜色映射函数，均匀分配断点到 RdBu 颜色
 col_corr <- colorRamp2(
   breaks = seq(corr_min, corr_max, length.out = 21), 
@@ -315,8 +274,6 @@ col_corr <- colorRamp2(
 # 设置内圈颜色
 weight_min <- min(dat2_mat)
 weight_max <- max(dat2_mat)
-# col_weight = colorRamp2(c(weight_min, 0, weight_max), c("#39A880","white","#EDAD3D")) #内圈beta的取值范围
-# col_weight = colorRamp2(c(weight_min, 0, weight_max), c("#72b043","white","#f8cc1b")) #内圈beta的取值范围
 # 创建颜色映射函数，均匀分配断点到 RdBu 颜色
 col_weight <- colorRamp2(
   breaks = seq(weight_min, weight_max, length.out = length(inner_layer_color_scale)),  # weight不对称，因此颜色截取部分
@@ -375,16 +332,6 @@ circos.track(track.index = get.current.track.index(), panel.fun = function(x, y)
 # 5. 绘制第三圈sector分类
 circos.track(ylim = c(0, 1), 
              track.height = 0.019,
-             
-             # panel.fun = function(x, y) {
-             #   sector_index = CELL_META$sector.index
-             #   xlim = CELL_META$xlim
-             #   ylim = CELL_META$ylim
-             #   circos.text(mean(xlim), mean(ylim), sector_index, cex = 0.7, col = "black",
-             #               facing = "inside", 
-             #               niceFacing = TRUE)
-             # },
-             
              bg.col = sector_colors, bg.border = "lightgrey", bg.lwd = 0.1)
 # 6. 添加sector图例
 legend(x = -0.6, y = 0.72, pch = 15, col = sector_colors, legend = phenotypes, 
