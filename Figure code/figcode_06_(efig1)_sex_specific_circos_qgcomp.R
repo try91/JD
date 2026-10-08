@@ -4,7 +4,7 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 ## 设置人群名称 ##
 
