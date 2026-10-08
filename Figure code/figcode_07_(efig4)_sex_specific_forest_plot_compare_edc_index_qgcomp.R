@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 ## 设置人群名称 ##
 

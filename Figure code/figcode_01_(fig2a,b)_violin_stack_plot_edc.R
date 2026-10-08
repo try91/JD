@@ -3,7 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(corrplot)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)

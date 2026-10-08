@@ -4,7 +4,7 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 # 提取 RdBu 的 11 种颜色
