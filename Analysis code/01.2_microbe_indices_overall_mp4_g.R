@@ -11,6 +11,11 @@ edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header =
 micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
 # 菌群MP4填补0值丰度 #
 {
+  # 菌群2014菌群 (分类和连续)
+  # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+  mp4_s_names <- colnames(micro_dat)[3:361]
+  mp4_g_names <- colnames(micro_dat)[721:912]
+  
   mp4_names <- c(mp4_s_names,mp4_g_names)
   
   for (col_name in mp4_names) {

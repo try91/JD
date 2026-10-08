@@ -5,32 +5,62 @@ library(ggplot2)
 library(survival)
 library(interactionR)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
 
-phy_edc_temp_list <- readRDS(paste0("jiading/data_for_analysis/phy_edc_subset.rds"))
+phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
+# 菌群MP4填补0值丰度 #
+{
+  # 菌群2014菌群 (分类和连续)
+  # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+  mp4_s_names <- colnames(micro_dat)[3:361]
+  mp4_g_names <- colnames(micro_dat)[721:912]
+  
+  mp4_names <- c(mp4_s_names,mp4_g_names)
+  
+  for (col_name in mp4_names) {
+    col_name_bin <- paste0(col_name,"_bin")  # 构建新变量名
+    micro_dat[[col_name_bin]] <- ifelse(micro_dat[[col_name]] == 0, 0, 1)  # 创建新变量并赋值
+  }
+  
+  for (col_name in mp4_names) {
+    col_data <- micro_dat[[col_name]]  # 获取当前列的数据
+    non_zero <- col_data[col_data!= 0]  # 找出该列的非零值
+    
+    if (length(non_zero) > 0) {
+      min_non_zero <- min(non_zero,na.rm = TRUE)  # 获取非零最小值
+      col_data[col_data == 0] <- min_non_zero / 2  # 将0值替换为非零最小值除以2
+    }
+    
+    col_name_zero <- paste0(col_name,"_zero")  # 构建新变量名
+    micro_dat[[col_name_zero]] <- col_data # 将处理后的列数据赋值回数据框新建的"填补0值后的列" (用于log转换；填充的数据，不能用来计算diversity和richness，也不能用来permanova)
+  }
+}
+# 菌群MP4填补0值丰度 #
+
+# phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID")
+phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
+  right_join(micro_dat, by = "ID")
+sample_name <- "phy_edc_temp0_3"
 
 #### 变量整理 ----
 # 菌群2014菌群 (分类和连续)
 # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
+mp4_s_names <- colnames(micro_dat)[3:361]
+mp4_g_names <- colnames(micro_dat)[721:912]
 # 排除未分类的菌属（GGB）和菌种（SGB） #
 mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
 mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
 # 排除未分类的菌属（GGB）和菌种（SGB） #
 
 # 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
 mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
 mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
 mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
 mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
+
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -63,35 +93,34 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
                     "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
                      "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -99,37 +128,8 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
-
-#### 读取EDC INDEX数据 ----
-edc_count_b <- read.table("jiading/sourceDataEDCs/index/edc_count_2010_20260313.txt", header = TRUE)
-edc_score_b <- read.table("jiading/sourceDataEDCs/index/edc_score_2010_20260313.txt", header = TRUE)
-
-edc_count_f <- read.table("jiading/sourceDataEDCs/index/edc_count_2014_20260313.txt", header = TRUE)
-edc_score_f <- read.table("jiading/sourceDataEDCs/index/edc_score_2014_20260313.txt", header = TRUE)
-
-# EDC INDEX 变量名
-edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
-                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
-edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
-                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
-#### 读取EDC INDEX数据 ####
-
-#### Link EDC INDEX ----
-phy_edc_dat <- phy_edc_temp_list[["phy_edc_temp0_3"]] # 提取subgroup
-sample_name <- "phy_edc_temp0_3"  # 提取subgroup的名称
-
-phy_edc_dat <- left_join(phy_edc_dat,edc_count_f,by="ID") %>%
-  left_join(edc_score_f,by="ID") %>%
-  left_join(edc_count_b,by="ID") %>%
-  left_join(edc_score_b,by="ID")
 
 # 分类协变量转换为因子 #
 phy_edc_dat$sex_b_rev <- factor(phy_edc_dat$sex_b_rev) # 0/1（女/男）
@@ -142,10 +142,10 @@ phy_edc_dat$paactive3_g_b <- factor(phy_edc_dat$paactive3_g_b)
 phy_edc_dat$paactive3_g_f <- factor(phy_edc_dat$paactive3_g_f)
 phy_edc_dat$high_fruveg <- factor(phy_edc_dat$high_fruveg) ### 把水果蔬菜变量转换为因子
 phy_edc_dat$med_all7 <- factor(phy_edc_dat$med_all7)
-#### Link EDC INDEX ####
+
 
 #### 对筛选得到的interaction分析结果进行敏感性分析 (有相乘交互的结果) ----
-results_multiplicative_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig_20260728.xlsx")
+results_multiplicative_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig.xlsx")
 unique(results_multiplicative_interaction_sig_keep$exposure)
 unique(results_multiplicative_interaction_sig_keep$mediator)
 unique(results_multiplicative_interaction_sig_keep$outcome)
@@ -178,7 +178,7 @@ pair_mp4_out_for_interaction$exp_med_out <- paste0(pair_mp4_out_for_interaction$
 exp_var <- unique(pair_mp4_out_for_interaction$exp_name)
 med_var <- unique(pair_mp4_out_for_interaction$mediator)
 out_var <- unique(pair_mp4_out_for_interaction$out_name)
-exp_med_out <- unique(pair_mp4_out_for_interaction$exp_med_out) # 86对潜在的EDC-菌-Outcome pairs (有相乘交互的结果)
+exp_med_out <- unique(pair_mp4_out_for_interaction$exp_med_out) # 75对潜在的EDC-菌-Outcome pairs (有相乘交互的结果)
 
 results_all <- data.frame()
 for (x in out_var) {
@@ -210,7 +210,7 @@ for (x in out_var) {
                   paste0(edc_traits8,"_detected"))
         
       }
-      phy_edc_dat_temp <- phy_edc_dat[,..cols]
+      phy_edc_dat_temp <- phy_edc_dat[,cols]
       phy_edc_dat_temp <- na.omit(phy_edc_dat_temp)
       colnames(phy_edc_dat_temp)[c(1,2,3,4)] <- c("CENSOR","TIME","EDC","MP4")
       
@@ -345,12 +345,12 @@ for (x in out_var) {
 # results_all$exp.uci <- ifelse(results_all$direction != "1_4", exp(results_all$coef + 1.96*results_all$se.coef.), results_all$exp.uci) # additive interaction结果包含OR和β，不转换
 
 
-openxlsx::write.xlsx(results_all,"results/cox/interaction/cox_results_edc_mp4_interaction_sensitivity_20260728.xlsx")
+openxlsx::write.xlsx(results_all,"results/cox/interaction/cox_results_edc_mp4_interaction_sensitivity.xlsx")
 #### interaction分析 (EDC-outcome/菌分组) ####
 
 
 #### 整理interaction分析结果 ----
-results_all <- readxl::read_xlsx("results/cox/interaction/cox_results_edc_mp4_interaction_sensitivity_20260728.xlsx")
+results_all <- readxl::read_xlsx("results/cox/interaction/cox_results_edc_mp4_interaction_sensitivity.xlsx")
 unique(results_all$mediator)
 # 挑选暴露结局变量
 results_short <- results_all[results_all$rowname %in% c("edc_group1",
@@ -425,12 +425,12 @@ results_short_level4$level <- 4
 results_short_level_all <- rbind(results_short_level1, results_short_level2, results_short_level3)
 results_short_level_all <- results_short_level_all[,c("coef","Pr...z..","rowname","exposure","mediator","outcome","exp_med_out","level")]
 
-openxlsx::write.xlsx(results_short_level_all,"results/cox/interaction/multi_interaction_sig_sensitivity_for_validate_20260728.xlsx")
+openxlsx::write.xlsx(results_short_level_all,"results/cox/interaction/multi_interaction_sig_sensitivity_for_validate.xlsx")
 #### 整理interaction分析结果 ####
 
 
 #### 比较"EDC/菌二分类结果"和"EDC二分类/菌三分类结果" ----
-results_both_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig_20260728.xlsx")
+results_both_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig.xlsx")
 # 因为二分类分析中为了保证菌群丰度对于结局是正相关，部分菌群调整了方向以高丰度作为reference，因此这部分菌的相乘交互相乘交互效应值需要调整方向
 results_both_interaction_sig_keep1 <- results_both_interaction_sig_keep[results_both_interaction_sig_keep$rowname %in% c("EDC high:GM low"),]
 results_both_interaction_sig_keep1$multiplicative_scale_coef <- log(results_both_interaction_sig_keep1$exp.coef.)
@@ -445,7 +445,7 @@ results_both_interaction_sig_keep$outcome <- gsub("_no_self_report","",results_b
 results_both_interaction_sig_keep$keep_exp_med_out <- gsub("_no_self_report","",results_both_interaction_sig_keep$keep_exp_med_out)
 
 
-results_short_level_all <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig_sensitivity_for_validate_20260728.xlsx")
+results_short_level_all <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig_sensitivity_for_validate.xlsx")
 results_short_level_all <- results_short_level_all[,c("coef","exp_med_out","level")]
 
 
@@ -460,5 +460,5 @@ unique(dat_validate$mediator)
 dat_validate_same_direction <- dat_validate[dat_validate$multiplicative_scale_coef_trans * dat_validate$coef > 0,]
 dat_validate_same_direction_sig <- dat_validate_same_direction[dat_validate_same_direction$level %in% c(1,2),]
 
-openxlsx::write.xlsx(dat_validate_same_direction_sig,"results/cox/interaction/both_interaction_sig_validated_resutls_20260728.xlsx")
+openxlsx::write.xlsx(dat_validate_same_direction_sig,"results/cox/interaction/both_interaction_sig_validated_resutls.xlsx")
 #### 比较"EDC/菌二分类结果"和"EDC二分类/菌三分类结果" ----

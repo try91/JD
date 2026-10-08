@@ -7,7 +7,6 @@ library(interactionR)
 
 setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
 
-
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
 micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
@@ -74,33 +73,26 @@ edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_
 
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
                     "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
                      "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -108,13 +100,7 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
 # 分类协变量转换为因子 #
@@ -131,21 +117,21 @@ phy_edc_dat$med_all7 <- factor(phy_edc_dat$med_all7)
 
 #### 筛选菌-Outcome pairs ----
 ## 菌群-outcome数据 ##
-cox_results <- readxl::read_xlsx("results/cox/cox_results_mp4_incident_20260728.xlsx")
+cox_results <- readxl::read_xlsx("results/cox/cox_results_mp4_incident.xlsx")
 cox_results <- cox_results[cox_results$adjust == "adj",]
 cox_results <- cox_results[,c(1,3:13)]
 colnames(cox_results)[c(1:4)] <- c("estimate","se","z","p")
 out_cox <- unique(cox_results$outcome) # 提取结局变量
 exp_cox <- unique(cox_results$exposure) # 提取暴露变量
 
-logistic_results <- readxl::read_xlsx("results/glm/logistic_results_mp4_incident_20260728.xlsx")
+logistic_results <- readxl::read_xlsx("results/glm/logistic_results_mp4_incident.xlsx")
 logistic_results <- logistic_results[logistic_results$adjust == "adj",]
 colnames(logistic_results)[c(1:4)] <- c("estimate","se","z","p")
 out_logistic <- unique(logistic_results$outcome) # 提取结局变量
 exp_logistic <- unique(logistic_results$exposure) # 提取暴露变量
 
 cox_logistic_results <- rbind(cox_results,logistic_results)
-cox_logistic_results <- cox_logistic_results[cox_logistic_results$outcome %in% c("cvd_incident_1421","ckd_incident_1014","dm_incident_1014_no_self_report"),]
+cox_logistic_results <- cox_logistic_results[cox_logistic_results$outcome %in% c("cvd_incident_1421","ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"),]
 cox_logistic_results <- cox_logistic_results[cox_logistic_results$rowname %in% c(mp4_s_log10),]
 # 以每个OUT表型为单位进行校正（以outcome为组，校正每个菌）
 cox_logistic_results <- cox_logistic_results %>%
@@ -155,7 +141,7 @@ cox_logistic_results <- cox_logistic_results %>%
 cox_logistic_short <- cox_logistic_results[,c("rowname","outcome","estimate","p","p_adj_bh")]
 colnames(cox_logistic_short)[c(1:5)] <- c("exp_name","out_name","estimate_cox_logistic","p","p_adj_bh")
 
-cox_logistic_short$out_name <- factor(cox_logistic_short$out_name, levels = c("cvd_incident_1421","ckd_incident_1014","dm_incident_1014_no_self_report"))
+cox_logistic_short$out_name <- factor(cox_logistic_short$out_name, levels = c("cvd_incident_1421","ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"))
 cox_logistic_short <- cox_logistic_short %>%
   arrange(exp_name,out_name)
 
@@ -166,7 +152,7 @@ cox_logistic_short$exp_estimate <- exp(cox_logistic_short$estimate_cox_logistic)
 pair_mp4_out_sig <- cox_logistic_short[cox_logistic_short$p < 0.05,] # (p显著)
 ## 分别提取三个结局结果 ##
 pair_mp4_cvd_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "cvd_incident_1421" & pair_mp4_out_sig$exp_name %in% c(mp4_s_log10),] # 26个CVD显著相关的菌种
-pair_mp4_ckd_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "ckd_incident_1014" & pair_mp4_out_sig$exp_name %in% c(mp4_s_log10),] # 84个CKD显著相关的菌种
+pair_mp4_ckd_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "ckd_incident_1014_no_self_report" & pair_mp4_out_sig$exp_name %in% c(mp4_s_log10),] # 84个CKD显著相关的菌种
 pair_mp4_dm_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "dm_incident_1014_no_self_report" & pair_mp4_out_sig$exp_name %in% c(mp4_s_log10),] # 35个DM显著相关的菌种
 #### 筛选菌-Outcome pairs ####
 
@@ -200,7 +186,7 @@ for (x in out_var) {
         cols <- c("cvd_incident_1021", "timecvd_1021", i, j, "age_b","sex_b_rev","smk1_b","drk1_b","high_edu_b","paactive3_g_b","high_fruveg","med_all7",
                   paste0(edc_traits8,"_detected"))
         
-      }else if(x == "ckd_incident_1014"){
+      }else if(x == "ckd_incident_1014_no_self_report"){
         outcome <- "ckd_incident_1014"
         cols <- c("ckd_incident_1014", "timeckd_1014", i, j, "age_b","sex_b_rev","smk1_b","drk1_b","high_edu_b","paactive3_g_b","high_fruveg","med_all7",
                   paste0(edc_traits8,"_detected"))
@@ -519,12 +505,12 @@ results_all$exp.lci <- ifelse(results_all$direction != "1_4", exp(results_all$co
 results_all$exp.uci <- ifelse(results_all$direction != "1_4", exp(results_all$coef + 1.96*results_all$se.coef.), results_all$exp.uci) # additive interaction结果包含OR和β，不转换
 
 
-openxlsx::write.xlsx(results_all,"results/cox/interaction/cox_results_edc_mp4_interaction_all_20260728.xlsx")
+openxlsx::write.xlsx(results_all,"results/cox/interaction/cox_results_edc_mp4_interaction_all.xlsx")
 #### interaction分析 (EDC-outcome/菌分组) ####
 
 
 #### 整理interaction分析结果 ----
-results_all <- readxl::read_xlsx("results/cox/interaction/cox_results_edc_mp4_interaction_all_20260728.xlsx")
+results_all <- readxl::read_xlsx("results/cox/interaction/cox_results_edc_mp4_interaction_all.xlsx")
 
 # 挑选暴露结局变量
 results_short <- results_all[results_all$rowname %in% c("EDC","mp4_group1","EDC:mp4_group1",
@@ -668,26 +654,7 @@ uniq_dat3 <- uniq_dat1[uniq_dat1 %in% uniq_dat2]
 results_both_interaction_sig_keep <- results_multiplicative_interaction_sig[results_multiplicative_interaction_sig$keep_exp_med_out %in% uniq_dat3,]
 
 
-openxlsx::write.xlsx(results_both_interaction_sig_keep,"results/cox/interaction/both_interaction_sig_20260728.xlsx")
-openxlsx::write.xlsx(results_multiplicative_interaction_sig_keep,"results/cox/interaction/multi_interaction_sig_20260728.xlsx")
-openxlsx::write.xlsx(results_additive_interaction_sig_keep,"results/cox/interaction/add_interaction_sig_20260728.xlsx")
+openxlsx::write.xlsx(results_both_interaction_sig_keep,"results/cox/interaction/both_interaction_sig.xlsx")
+openxlsx::write.xlsx(results_multiplicative_interaction_sig_keep,"results/cox/interaction/multi_interaction_sig.xlsx")
+openxlsx::write.xlsx(results_additive_interaction_sig_keep,"results/cox/interaction/add_interaction_sig.xlsx")
 #### 整理interaction分析结果 ####
-
-#### 对筛选得到的interaction分析结果进行敏感性分析 ----
-results_both_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig_20260728.xlsx")
-# results_both_interaction_sig_keep <- results_both_interaction_sig_keep[results_both_interaction_sig_keep$mediator %in% mp4_s_log10_short,]
-unique(results_both_interaction_sig_keep$exposure)
-unique(results_both_interaction_sig_keep$mediator)
-unique(results_both_interaction_sig_keep$outcome)
-
-
-dat_mp4_detected_rate <- data.frame()
-for (i in unique(results_both_interaction_sig_keep$mediator)) {
-  i <- paste0(gsub("_log10","",i),"_bin")
-  
-  temp <- data.frame(species = i,
-                     dr = nrow(phy_edc_dat[phy_edc_dat[[i]] == 1,])/nrow(phy_edc_dat))
-  
-  dat_mp4_detected_rate <- rbind(dat_mp4_detected_rate, temp)
-}
-#### 对筛选得到的interaction分析结果进行敏感性分析 ####

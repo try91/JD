@@ -13,19 +13,19 @@ phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
 
 # 亚组人群 #
 {
-  # 人群0_1（男性）
-  phy_edc_temp0_1 <- phy_edc_dat %>%
-    filter(sex_b_rev == 1)
-  # 人群0_2（女性）
-  phy_edc_temp0_2 <- phy_edc_dat %>%
-    filter(sex_b_rev == 0)
+  # # 人群0_1（男性）
+  # phy_edc_temp0_1 <- phy_edc_dat %>%
+  #   filter(sex_b_rev == 1)
+  # # 人群0_2（女性）
+  # phy_edc_temp0_2 <- phy_edc_dat %>%
+  #   filter(sex_b_rev == 0)
   # 有2014肠道菌群数据人群
   phy_edc_temp0_3 <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
     right_join(micro_dat, by = "ID")
   phy_edc_temp_list <- list()
   phy_edc_temp_list[["phy_edc_temp"]] <- phy_edc_dat
-  phy_edc_temp_list[["phy_edc_temp0_1"]] <- phy_edc_temp0_1
-  phy_edc_temp_list[["phy_edc_temp0_2"]] <- phy_edc_temp0_2
+  # phy_edc_temp_list[["phy_edc_temp0_1"]] <- phy_edc_temp0_1
+  # phy_edc_temp_list[["phy_edc_temp0_2"]] <- phy_edc_temp0_2
   phy_edc_temp_list[["phy_edc_temp0_3"]] <- phy_edc_temp0_3
 }
 
@@ -122,21 +122,6 @@ edc_traits <- c(edc_index_b_keep, edc_index_f_keep, edc_traits_log10)
 
 
 #### 构建Spearman分析函数 ----
-### 创建一个函数，用于计算连续变量之间的单变量Spearman相关性
-spearman_test <- function(EXP, OUT, DAT) {
-  # Spearman相关性测试
-  results <- cor.test(DAT[[OUT]], DAT[[EXP]], method = "spearman")
-  temp_spearman <- data.frame(
-    exp_name = EXP,
-    out_name = OUT,
-    method = "spearman",
-    estimate = results$estimate,
-    p = results$p.value,
-    sample = sample_name,
-    n = length(na.omit(DAT[[OUT]]))
-  )
-  return(temp_spearman)
-}
 ### 创建一个函数，用于计算连续变量之间的多变量Partial Spearman相关性 (Partial Spearman 中校正分类变量不能是因子)
 partial_spearman_test <- function(EXP, OUT, COV, DAT) {
   DAT <- DAT[!is.na(DAT[[OUT]]) & !is.na(DAT[[EXP]]),]
@@ -169,39 +154,6 @@ partial_spearman_test <- function(EXP, OUT, COV, DAT) {
 
 
 #### EDC || EDC VS. EDC, MP4 & Outcomes ----
-spearman_results_list <- list()
-for (i in c("phy_edc_temp","phy_edc_temp0_3")) {
-  # i <- "phy_edc_temp0_3"
-
-  phy_edc_dat <- phy_edc_temp_list[[i]]
-  sample_name <- i
-
-  #### Spearman (EDC与EDC、菌群和结局指标之间的关联) ----
-  spearman_results <- data.frame()
-  for (k in edc_traits) {
-    print(paste0(round(Sys.time(),0)," || ",sample_name," |Spearman (exposure) ",which(c(edc_traits) == k)," out of ",length(c(edc_traits))))
-    for (m in c(edc_traits,mp4_s_log10)) {
-
-      if(i %in% c("phy_edc_temp") & m %in% mp4_s_log10){ # 如果在整体人群中，则不分析与菌群关联
-        next
-      }
-
-      ## 分析样本选取 (排除缺失的项) ##
-      cols <- c(k, m)
-      phy_edc_dat_temp <- phy_edc_dat[,cols]
-      phy_edc_dat_temp <- na.omit(phy_edc_dat_temp)
-
-      result <- spearman_test(k, m, phy_edc_dat_temp)
-      spearman_results <- rbind(spearman_results, result)
-    }
-  }
-  spearman_results_list[[paste0("spearman_results-(",sample_name,")")]] <- spearman_results
-  #### Spearman (EDC与EDC、菌群和结局指标之间的关联) ####
-}
-### 保存单个数据 ###
-saveRDS(spearman_results_list, paste0("results/correlations/spearman/spearman_results_edc-edc_mp4_out.rds"))
-
-
 partial_spearman_results_list <- list() # Partial Spearman 中校正分类变量不能是因子
 for (i in c("phy_edc_temp","phy_edc_temp0_3")) {
   # i <- "phy_edc_temp0_3"
