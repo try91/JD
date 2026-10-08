@@ -3,7 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(corrplot)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 PFAS_colors <- colorRampPalette(c("#f55d78","#FFFFFF"))(50)[c(1,8,15,22,29)]
