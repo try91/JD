@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(qgcomp) 
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 
@@ -29,21 +29,21 @@ nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 #### Subgroup for analysis ####
 
 #### 变量整理 ----
-# 菌群2014菌群 (分类和连续)
-# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- colnames(micro_dat)[3:361]
-mp4_g_names <- colnames(micro_dat)[721:912]
-# 排除未分类的菌属（GGB）和菌种（SGB） #
-mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
-mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
-# 排除未分类的菌属（GGB）和菌种（SGB） #
-
-# 转换后的菌的名称
-mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
-mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
-
-mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
-mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
+# # 菌群2014菌群 (分类和连续)
+# # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+# mp4_s_names <- colnames(micro_dat)[3:361]
+# mp4_g_names <- colnames(micro_dat)[721:912]
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+# mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# 
+# # 转换后的菌的名称
+# mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+# mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+# 
+# mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+# mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
 
 
 # 2010污染物 (连续)
@@ -58,9 +58,11 @@ edc_traits3_q4 <- c("MEHP","MECPP","MEHHP","MEP") # 检出率>75%的PAE4
 edc_traits4 <- c("BPA","BPS","BPF")
 edc_traits4_q2 <- c("BPA") # 检出率>50%的BP1
 edc_traits5 <- c("TCC","TCS")
+edc_traits5_q2 <- c("TCS")
 edc_traits6 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP",
-                 "BPA","TCC","TCS") # 检出率>50%
+                 "BPA",
+                 "TCS") # 检出率>50%
 edc_traits7 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP") # 检出率>75%
 edc_traits8 <- c("MnBP","MCPP","MBzP",
@@ -74,6 +76,7 @@ edc_traits3_q4_log10 <- paste0(edc_traits3_q4,"_log10")
 edc_traits4_log10 <- paste0(edc_traits4,"_log10")
 edc_traits4_q2_log10 <- paste0(edc_traits4_q2,"_log10")
 edc_traits5_log10 <- paste0(edc_traits5,"_log10")
+edc_traits5_q2_log10 <- paste0(edc_traits5_q2,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
@@ -273,7 +276,7 @@ for (i in c("nhanes_dat1_1114")) {
     
   }
   
-  openxlsx::write.xlsx(sum_results_qg_all, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
+  openxlsx::write.xlsx(sum_results_qg_all, paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
   
 }
 #### qgcomp分析 (EDC13 Q2) (q=2, bayes=FALSE) ####
@@ -303,7 +306,7 @@ for (i in c("nhanes_dat1_1114")) {
   # 分类协变量转换为因子
   
   # 读取上一步qgcomp分析结果
-  results_qg <- readxl::read_xlsx(paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
+  results_qg <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
   results_qg <- results_qg[results_qg$exp == "EDC_13",]
   
   #### binary outcome ----
@@ -344,7 +347,7 @@ for (i in c("nhanes_dat1_1114")) {
     
   }
   
-  openxlsx::write.xlsx(sum_results_qg_all, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name,")_NOsamplingweights.xlsx"))
+  openxlsx::write.xlsx(sum_results_qg_all, paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name,")_NOsamplingweights.xlsx"))
 }
 #### 读取qgcomp分析EDC结果，分别筛选正负EDC (EDC13 Q2) (q=2, bayes=FALSE) ####
 
@@ -455,72 +458,11 @@ cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kc
 ### 原始分析 (校正："age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle") ###
 qgcomp_results_list <- list()
 for (i in c("nhanes_dat5_0318")) {
-            # "nhanes_dat5_1118","nhanes_dat5_1116","nhanes_dat5_1114",
-            # "nhanes_dat5_1318","nhanes_dat5_1316",
-            # "nhanes_dat5_0304","nhanes_dat5_0506","nhanes_dat5_0708","nhanes_dat5_0910",
-            # "nhanes_dat5_1112","nhanes_dat5_1314","nhanes_dat5_1516","nhanes_dat5_1718")) {
   # i <- "nhanes"
-  if(i == "nhanes_dat5_0318"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
   
-  else if(i == "nhanes_dat5_1118"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/4 # 四轮数据除以4
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1116"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/3 # 三轮数据除以3
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1114"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1318"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/3 # 三轮数据除以3
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1316"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
-  
-  else if(i == "nhanes_dat5_0304"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2003-2004",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0506"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2005-2006",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0708"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2007-2008",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0910"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2009-2010",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1112"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2011-2012",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1314"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2013-2014",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1516"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2015-2016",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1718"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2017-2018",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }
+  phy_edc_dat <- nhanes_dat5
+  phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
+  cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
@@ -572,7 +514,7 @@ for (i in c("nhanes_dat5_0318")) {
     sum_results_qg_all <- bind_rows(sum_results_qg_all, r)
     
   }
-  openxlsx::write.xlsx(sum_results_qg_all, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights_20260612.xlsx"))
+  openxlsx::write.xlsx(sum_results_qg_all, paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
   
 }
 #### qgcomp分析 (PAE_6 Q2) (q=2, bayes=FALSE) ####
@@ -580,72 +522,11 @@ for (i in c("nhanes_dat5_0318")) {
 #### 读取qgcomp分析EDC结果，分别筛选正负EDC (PAE_6 Q2) (q=2, bayes=FALSE) ----
 ### 基于原始分析，提取同方向EDC的进一步分析 (校正："age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle") ###
 for (i in c("nhanes_dat5_0318")) {
-            # "nhanes_dat5_1118","nhanes_dat5_1116","nhanes_dat5_1114",
-            # "nhanes_dat5_1318","nhanes_dat5_1316",
-            # "nhanes_dat5_0304","nhanes_dat5_0506","nhanes_dat5_0708","nhanes_dat5_0910",
-            # "nhanes_dat5_1112","nhanes_dat5_1314","nhanes_dat5_1516","nhanes_dat5_1718")) {
   # i <- "nhanes"
-  if(i == "nhanes_dat5_0318"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
   
-  else if(i == "nhanes_dat5_1118"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/4 # 四轮数据除以4
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1116"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/3 # 三轮数据除以3
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1114"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1318"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/3 # 三轮数据除以3
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat5_1316"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
-  
-  else if(i == "nhanes_dat5_0304"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2003-2004",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0506"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2005-2006",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0708"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2007-2008",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_0910"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2009-2010",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1112"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2011-2012",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1314"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2013-2014",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1516"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2015-2016",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }else if(i == "nhanes_dat5_1718"){
-    phy_edc_dat <- nhanes_dat5[nhanes_dat5$release == "2017-2018",]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5")
-  }
+  phy_edc_dat <- nhanes_dat5
+  phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
+  cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
@@ -661,7 +542,7 @@ for (i in c("nhanes_dat5_0318")) {
   # 分类协变量转换为因子
   
   # 读取上一步qgcomp分析结果
-  results_qg <- readxl::read_xlsx(paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights_20260612.xlsx"))
+  results_qg <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name,")_NOsamplingweights.xlsx"))
   results_qg <- results_qg[results_qg$exp == "PAE_6",]
   
   #### binary outcome ----
@@ -696,6 +577,6 @@ for (i in c("nhanes_dat5_0318")) {
     sum_results_qg_all <- bind_rows(sum_results_qg_all, r)
     
   }
-  openxlsx::write.xlsx(sum_results_qg_all, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name,")_NOsamplingweights_20260612.xlsx"))
+  openxlsx::write.xlsx(sum_results_qg_all, paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name,")_NOsamplingweights.xlsx"))
 }
 #### 读取qgcomp分析EDC结果，分别筛选正负EDC (PAE_6 Q2) (q=2, bayes=FALSE) ####

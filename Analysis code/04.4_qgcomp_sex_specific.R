@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(qgcomp)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
@@ -19,14 +19,14 @@ phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
   # 人群0_2（女性）
   phy_edc_temp0_2 <- phy_edc_dat %>%
     filter(sex_b_rev == 0)
-  # 有2014肠道菌群数据人群
-  phy_edc_temp0_3 <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
-    right_join(micro_dat, by = "ID")
+  # # 有2014肠道菌群数据人群
+  # phy_edc_temp0_3 <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
+  #   right_join(micro_dat, by = "ID")
   phy_edc_temp_list <- list()
   phy_edc_temp_list[["phy_edc_temp"]] <- phy_edc_dat
   phy_edc_temp_list[["phy_edc_temp0_1"]] <- phy_edc_temp0_1
   phy_edc_temp_list[["phy_edc_temp0_2"]] <- phy_edc_temp0_2
-  phy_edc_temp_list[["phy_edc_temp0_3"]] <- phy_edc_temp0_3
+  # phy_edc_temp_list[["phy_edc_temp0_3"]] <- phy_edc_temp0_3
   }
 
 #### 变量整理 ----

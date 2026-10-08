@@ -3,7 +3,7 @@ library(dplyr)
 library(gWQS)
 set.seed(20241108)  # 设置随机数种子，确保结果可重复
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 
@@ -59,9 +59,11 @@ edc_traits3_q4 <- c("MEHP","MECPP","MEHHP","MEP") # 检出率>75%的PAE4
 edc_traits4 <- c("BPA","BPS","BPF")
 edc_traits4_q2 <- c("BPA") # 检出率>50%的BP1
 edc_traits5 <- c("TCC","TCS")
+edc_traits5_q2 <- c("TCS")
 edc_traits6 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP",
-                 "BPA","TCC","TCS") # 检出率>50%
+                 "BPA",
+                 "TCS") # 检出率>50%
 edc_traits7 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP") # 检出率>75%
 edc_traits8 <- c("MnBP","MCPP","MBzP",
@@ -75,6 +77,7 @@ edc_traits3_q4_log10 <- paste0(edc_traits3_q4,"_log10")
 edc_traits4_log10 <- paste0(edc_traits4,"_log10")
 edc_traits4_q2_log10 <- paste0(edc_traits4_q2,"_log10")
 edc_traits5_log10 <- paste0(edc_traits5,"_log10")
+edc_traits5_q2_log10 <- paste0(edc_traits5_q2,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
@@ -263,15 +266,10 @@ cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kc
 options(future.globals.maxSize = 1024 * 1024 * 1024 * 4)  # 提高 future.globals.maxSize 的阈值（设为4GB）
 for (i in c("nhanes_dat1_1114")) {
   # i <- "nhanes_dat1_1114"
-  if(i == "nhanes_dat1_1116"){
-    phy_edc_dat <- nhanes_dat1
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/3 # 三轮数据除以3
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }else if(i == "nhanes_dat1_1114"){
-    phy_edc_dat <- nhanes_dat1[nhanes_dat1$release %in% c("2011-2012","2013-2014"),]
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
+  
+  phy_edc_dat <- nhanes_dat1[nhanes_dat1$release %in% c("2011-2012","2013-2014"),]
+  phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/2 # 两轮数据除以2
+  cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
@@ -341,7 +339,7 @@ for (i in c("nhanes_dat1_1114")) {
   }
   #### 分类结局 ####
   
-  openxlsx::write.xlsx(wqs_results_bin_table, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/wqs/wqs_results_bin_(",sample_name,")_NOsamplingweights_20260612.xlsx"))
+  openxlsx::write.xlsx(wqs_results_bin_table, paste0("results/correlations/wqs/wqs_results_bin_(",sample_name,")_NOsamplingweights.xlsx"))
 }
 
 #### WQS ####
@@ -493,11 +491,10 @@ cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kc
 options(future.globals.maxSize = 1024 * 1024 * 1024 * 4)  # 提高 future.globals.maxSize 的阈值（设为4GB）
 for (i in c("nhanes_dat5_0318")) {
   # i <- "nhanes_dat5_0318"
-  if(i == "nhanes_dat5_0318"){
-    phy_edc_dat <- nhanes_dat5
-    phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
-    cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
-  }
+  
+  phy_edc_dat <- nhanes_dat5
+  phy_edc_dat$WTMEC2YR_COMB <- phy_edc_dat$WTMEC2YR/8 # 八轮数据除以8
+  cov_traits <- c("age","race_eth","sex_rev","smk1","drk1","high_edu","mvpa_g","kcal_q4","ucr_q5","release_cycle")
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
@@ -567,6 +564,6 @@ for (i in c("nhanes_dat5_0318")) {
   }
   #### 分类结局 ####
   
-  openxlsx::write.xlsx(wqs_results_bin_table, paste0("C:/TWang/DLiu/EDC_Micro/results/correlations/wqs/wqs_results_bin_(",sample_name,")_NOsamplingweights_20260612.xlsx"))
+  openxlsx::write.xlsx(wqs_results_bin_table, paste0("results/correlations/wqs/wqs_results_bin_(",sample_name,")_NOsamplingweights.xlsx"))
 }
 #### WQS ####

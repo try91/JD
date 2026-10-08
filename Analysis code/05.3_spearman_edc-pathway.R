@@ -98,6 +98,22 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_lip1_f")
 #### 变量整理 ####
 
+
+#### 读取 Pathway变量名 ----
+# 丰度>0.0001, 出现率>10%的pathway
+pathway_mp3 <- read.table("raw_data/pathway_names_mp3_10%.txt",header = TRUE)
+pathway_mp3_names_labels <- pathway_mp3[,1]
+pathway_mp3_names <- pathway_mp3[,2]
+# 转换后的pathway名称
+pathway_mp3_log10 <- paste0(pathway_mp3_names,"_log10") # Pathway丰度的log10转换
+# # 完整386个pathway
+# pathway_mp3_clean <- fread("jiading/sourceDataTaxon/mpa3/WTG.humann3.pathway.clean_log10.csv")
+#### 读取 Pathway变量名 ####
+
+# 总体EDC变量名
+edc_traits <- c(edc_index_f_keep, edc_traits_log10)
+
+
 #### 构建Spearman分析函数 ----
 ### 创建一个函数，用于计算连续变量之间的多变量Partial Spearman相关性 (Partial Spearman 中校正分类变量不能是因子)
 partial_spearman_test <- function(EXP, OUT, COV, DAT) {
@@ -130,28 +146,27 @@ partial_spearman_test <- function(EXP, OUT, COV, DAT) {
 #### 构建Spearman分析函数 ####
 
 
-#### MP4 || Outcomes ----
+#### EDC || EDC VS. Pathways ----
 partial_spearman_results_list <- list() # Partial Spearman 中校正分类变量不能是因子
 for (i in c("phy_edc_temp0_3")) {
   # i <- "phy_edc_temp0_3"
   
   sample_name <- i
   
-  #### Partial Spearman (菌群和结局指标之间的关联，校正协变量) ----
+  #### Partial Spearman(菌群与Pathways之间的关联，校正协变量) ----
   partial_spearman_results <- data.frame()
-  for (k in mp4_s_log10) {
-    print(paste0(round(Sys.time(),0)," || ",sample_name," |Partial Spearman (exposure) ",which(c(mp4_s_log10) == k)," out of ",length(c(mp4_s_log10))))
-    for (m in c(phy_traits_cont)) {
+  for (k in edc_traits) {
+    print(paste0(round(Sys.time(),0)," || ",sample_name," |Partial Spearman (exposure) ",which(c(edc_traits) == k)," out of ",length(c(edc_traits))))
       
-      ## 选取校正变量 ##
-      # 菌群人群，菌群变量（校正用药）
+    for (m in c(pathway_mp3_log10)) {
+      
       cov_traits_for_p_spearman <- c("age_f","sex_b_rev","smk1_f","drk1_f","high_edu_b","paactive3_g_f","high_fruveg","med_all7") # Partial Spearman 中校正分类变量不能是因子
-      
       ## 分析样本选取 (排除缺失的项) ##
       cols <- c(k, m, cov_traits_for_p_spearman)
       phy_edc_dat_temp <- phy_edc_dat[,cols]
       phy_edc_dat_temp <- na.omit(phy_edc_dat_temp)
       
+      # EDC (EXP+校正变量) 与 Pathways (OUT)
       tryCatch(expr = {
         result <- partial_spearman_test(k, m, cov_traits_for_p_spearman, phy_edc_dat_temp)
         partial_spearman_results <- rbind(partial_spearman_results, result)
@@ -165,8 +180,8 @@ for (i in c("phy_edc_temp0_3")) {
   }
   
   partial_spearman_results_list[[paste0("partial_spearman_results-(",sample_name,")")]] <- partial_spearman_results
-  #### Partial Spearman (菌群和结局指标之间的关联，校正协变量) ####
+  #### Partial Spearman(菌群与Pathways之间的关联，校正协变量) ####
 }
 ### 保存单个数据 ###
-saveRDS(partial_spearman_results_list, paste0("results/correlations/spearman/partial_spearman_results_mp4-out.rds"))
-#### MP4 || Outcomes ####
+saveRDS(partial_spearman_results_list, paste0("results/correlations/spearman/partial_spearman_results_edc-pathway.rds"))
+#### EDC || EDC VS. Pathways ####
