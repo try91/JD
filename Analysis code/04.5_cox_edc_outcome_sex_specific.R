@@ -31,7 +31,7 @@ phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
   phy_edc_temp_list[["phy_edc_temp0_1"]] <- phy_edc_temp0_1
   phy_edc_temp_list[["phy_edc_temp0_2"]] <- phy_edc_temp0_2
   phy_edc_temp_list[["phy_edc_temp0_3"]] <- phy_edc_temp0_3
-  }
+}
 
 #### 变量整理 ----
 # 菌群2014菌群 (分类和连续)
@@ -214,8 +214,9 @@ covariate[[1]] <- paste0(" + age_b + smk1_b + drk1_b + high_edu_b + paactive3_g_
 cox_results_edc_incident_list <- list()
 cox_results_edc_index_incident_list <- list()
 for (i in c("phy_edc_temp0_1","phy_edc_temp0_2")) { # 不同亚组
-  # i <- "phy_edc_temp"
+  # i <- "phy_edc_temp0_1"
   
+  phy_edc_dat <- phy_edc_temp_list[[i]]
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
@@ -447,6 +448,7 @@ logistic_results_edc_index_incident_all <- data.frame()
 for (i in c("phy_edc_temp0_1","phy_edc_temp0_2")) { # 不同亚组
   # i <- "phy_edc_temp0_1"
   
+  phy_edc_dat <- phy_edc_temp_list[[i]]
   sample_name <- i  # 提取subgroup的名称
   
   # 分类协变量转换为因子
