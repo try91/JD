@@ -109,10 +109,6 @@ beta_diversity_list_mp4_g <- readRDS(paste0("results/indices/beta_diversity_mp4_
 
 #### PERMANOVA (MP4, at the genus level) (分类表型和连续表型的genus水平的Bray-Curtis dissimilarity差异) ----
 dat <- beta_diversity_list_mp4_g[[1]]
-# # Bray-Curtis dissimilarity结果默认是dist对象，可以转换为矩阵查看
-# matrix_bray <- as.matrix(beta_diversity_list_mp4_g[[1]])
-# # 查看前5x5矩阵
-# print(matrix_bray[1:5, 1:5])
 cov <- beta_diversity_list_mp4_g[[2]]
 keep_col <- c("id14_15",env_out_edc)
 cov <- cov[,keep_col]
@@ -120,15 +116,8 @@ cov <- cov[,keep_col]
 for (i in cov_traits_cat) {
   cov[[i]] <- factor(cov[[i]]) 
 }
-# ### 获取缺失列名及对应缺失数量 ###
-# missing_stats <- colSums(is.na(cov))              # 计算每列缺失总数
-# missing_cols <- names(missing_stats[missing_stats > 0])  # 筛选有缺失的列名
-# result <- data.frame(Column = missing_cols, Missing = missing_stats[missing_cols])
-# row.names(result) <- NULL
-# print(result)
 
-
-# 由于cat变量包含小于二分类的变量（如PFAS的detected），筛选仅含一种唯一值的变量名（忽略NA）
+# 筛选仅含一种唯一值的变量名（忽略NA）
 temp <- cov[,cov_traits_cat]
 one_value_vars <- names(temp)[sapply(temp, function(x) length(unique(na.omit(x))) == 1)]
 # 从cov和变量名向量中删除只有一个值的变量名
