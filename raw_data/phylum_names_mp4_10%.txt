@@ -1,0 +1,10 @@
+p__Actinobacteria
+p__Bacteria_unclassified
+p__Bacteroidetes
+p__Candidatus_Saccharibacteria
+p__Firmicutes
+p__Fusobacteria
+p__Proteobacteria
+p__Synergistetes
+p__Thaumarchaeota
+p__Verrucomicrobia
