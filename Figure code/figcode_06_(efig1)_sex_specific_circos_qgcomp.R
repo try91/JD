@@ -4,17 +4,7 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
-
-## 设置人群名称 ##
-
-# 男性 (总人群, n=3930)
-sample_name <- "phy_edc_temp0_1"
-inner_layer_color_scale <- c(8:38) # 内层色阶对应0.66 ~ -0.86
-
-# # 女性 (总人群, n=6394)
-# sample_name <- "phy_edc_temp0_2"
-# inner_layer_color_scale <- c(9:38) # 内层色阶对应0.61 ~ -0.87
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 # 提取 RdBu 的 11 种颜色
@@ -114,273 +104,287 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_lip1_f")
 #### 变量整理 ####
 
-#### 数据处理 (for circos heatmap & forest plot) ----
-### 设置纳入图片的暴露和结局
-## 暴露：EDC
-exposure <- c("EDC_14","EDC_pos","EDC_neg","PFAS","PAE_6","TC","BP_1")
-# 标准化名称
-exposure_label <- c("EDCs (14)","EDCs (positive weight)","EDCs (negative weight)","PFAS (5)","PAEs (6)","Antimicrobials (2)","Bisphenols (1)")
 
-## 结局：12类biomarker（用总人群（用10年指标，没有的用14年的补充））
-outcome <- c("dm_incident_1014","ckd_incident_1014","cvd_incident_1021","cvd_incident_1014",
-             "dm_b","ckd_b","cvd_b","ob_b","abob_b","ir_b","dyslip_b","mets_b","nafld_b","hua_b","hpt_b","as_imt_b",
-             "bmi_b","height_b","weight_b","whr_b","wc_b","hc_b",
-             "tg_b","ldl_b","hdl_b","chol_b","apoa_b","apob_b","nonhdl_b",
-             "alt_b","ast_b","ggt_b","bia_b",
-             "egfr_b","scr_b","ua_b",
-             "glu0_b","glu120_b","vhba1c_b",
-             "ins0_b","ins120_b","homair_b","homab_b",
-             "sbp_b","dbp_b","pr_b",
-             "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
-             "hgb_b","plt_b","eos_f","lym_f","mon_f","neu_f",
-             "nlr_f","lmr_f","plr_f","sii_f","siri_f","wbc_b","crp_f")
-outcome_final <- outcome
-# 标准化名称
-outcome_label <- c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2021)","Incident CVD (2010-2014)",
-                   "Diabetes","CKD","CVD","Obesity","Abdominal obesity","IR","Dyslipidemia","MetS","NAFLD","High UA","Hypertension","High CIMT",
-                   "BMI","Height","Weight","WHR","WC","HC",
-                   "TG","LDL-C","HDL-C","TC","ApoA-1","ApoB","Non-HDL-C",
-                   "ALT","AST","GGT","Bile acid",
-                   "eGFR","Serum creatinine","UA",
-                   "OGTT 0-h glucose","OGTT 2-h glucose","HbA1c",
-                   "OGTT 0-h insulin","OGTT 2-h insulin","HOMA-IR","HOMA-B",
-                   "SBP","DBP","PR",
-                   "FT3","FT4","TSH","TPOAb","TgAb",
-                   "Hemoglobin","Platelet count","Eosinophil count","Lymphocyte count","Monocyte count","Neutrophil count",
-                   "NLR","LMR","PLR","SII","SIRI","WBC","Hs-CRP")
-
-# 读取数据 (总人群)
-results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,").xlsx"))
-# 读取数据 (总人群)
-results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,").xlsx"))
-
-results_qg <- rbind(results_qg_all1, results_qg_edc1) %>%
-  filter(exp %in% exposure & out %in% outcome_final)
-results_qg <- results_qg[!(results_qg$out %in% c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014") & results_qg$method == "qgcomp bin"),] # 删除"cvd_incident_1021","ckd_incident_1014","dm_incident_1014"的logistic结果
-colnames(results_qg)[9:22] <- gsub("_log10","",colnames(results_qg)[9:22])
-
-results_qg$z <- results_qg$estimate/results_qg$se
-
-# FDR 校正
-# 以每个exposure表型为单位，校正outcome
-dat <- results_qg %>%
-  group_by(exp) %>%  # 按exposure分组，校正outcome
-  mutate(p_adj_bh = p.adjust(p, method = "BH")) %>% # 对每个分组的P值进行FDR校正
-  ungroup()
-
-# EDC 权重数据整理
-dat$numb_pos_weight <- rowSums(dat[, 9:22] > 0, na.rm = TRUE)# 计算每一行第9列到第22列中正数的数量
-dat$numb_neg_weight <- rowSums(dat[, 9:22] < 0, na.rm = TRUE)# 计算每一行第9列到第22列中负数的数量
-
-dat$weight_threshold_pos <- 1 / dat$numb_pos_weight
-dat$weight_threshold_neg <- 1 / dat$numb_neg_weight
-
-dat_edc <- dat[dat$exp == "EDC_14",]
-dat_edc_19_long_qgcomp <- tidyr::gather(dat_edc, edc, weight, 9:22, na.rm=TRUE, factor_key=TRUE)  #注意根据数据格式进行修改，容易忘记！！！！！
-
-dat_qgcomp <- dat
-dat_qgcomp$exp <- factor(dat_qgcomp$exp, levels = exposure, labels = exposure_label)
-dat_qgcomp$out <- factor(dat_qgcomp$out, levels = outcome_final, labels = outcome_label)
-dat_qgcomp <- dat_qgcomp %>% arrange(out,exp)
-#### 数据处理 (for circos heatmap & forest plot) ####
-
-
-############################################# 环形热图 (qgcomp) #############################################
-#### circos heatmap (删除 4 incidence outcome ["cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014"]) ----
-# 提取数据做EDC和表型关联性环状热图
-dat_qgcomp_corr <- dat_qgcomp[,c(1:8,23,24)]
-dat_qgcomp_corr <- dat_qgcomp_corr[!dat_qgcomp_corr$out %in% c("Incident CVD (2010-2021)","Incident CVD (2010-2014)","Incident CKD (2010-2014)","Incident diabetes (2010-2014)") & !dat_qgcomp_corr$exp %in% c("EDCs (positive weight)","EDCs (negative weight)"),]
-# 提取数据做EDC权重环状热图
-dat_qgcomp_weight <- dat_qgcomp[dat_qgcomp$exp == "EDCs (14)",c(2,9:22,25:28)]
-dat_qgcomp_weight <- dat_qgcomp_weight[!dat_qgcomp_weight$out %in% c("Incident CVD (2010-2021)","Incident CVD (2010-2014)","Incident CKD (2010-2014)","Incident diabetes (2010-2014)"),]
-
-## QGCOMP 关联性
-# 转换为wide格式data
-dat_qgcomp_corr_3cols <- dat_qgcomp_corr
-dat_qgcomp_corr_3cols <- dat_qgcomp_corr_3cols[,c("exp","out","z")]
-# 由于有过大值和过小值，因此对原本数值再进行一次转换，减少数值间差异
-dat_qgcomp_corr_3cols$z <- asinh(dat_qgcomp_corr_3cols$z) # 反双曲正弦变换（asinh）， 适用于正负值混合的数据，尤其适合处理尾部极端值，效果类似对数变换但对零值更平滑。
-# 由于有过大值和过小值，因此对原本数值再进行一次log转换，减少数值间差异
-dat1 <- tidyr::pivot_wider(dat_qgcomp_corr_3cols, names_from = exp, values_from = z) # 转换为行为“out”列为“exp”
-dat1 <- data.frame(dat1, check.names = FALSE)  # 禁止自动修改列名
-rownames(dat1) <- dat1$out
-dat1 <- dat1[,-1]
-dat1_mat <- as.matrix(dat1)
-
-## QGCOMP 关联性(P值)
-dat_qgcomp_p_3cols <- dat_qgcomp_corr[,c("exp","out","p_adj_bh")]
-dat1_p <- tidyr::pivot_wider(dat_qgcomp_p_3cols, names_from = exp, values_from = p_adj_bh) # 转换为行为“out”列为“exp”
-dat1_p <- data.frame(dat1_p, check.names = FALSE)  # 禁止自动修改列名
-rownames(dat1_p) <- dat1_p$out
-dat1_p <- dat1_p[,-1]
-dat1_p_mat <- as.matrix(dat1_p)
-dat1_mat[dat1_p_mat >= 0.05] <- NA
+# # 男性 (总人群, n=3930)
+# sample_name <- "phy_edc_temp0_1"
+# # 女性 (总人群, n=6394)
+# sample_name <- "phy_edc_temp0_2"
+for (sample_name in c("phy_edc_temp0_1","phy_edc_temp0_2")) {
   
-# 把weight数据转换为long data排序
-dat_qgcomp_weight2 <- dat_qgcomp_weight[,c(1:15)]
-dat_qgcomp_weight2_long <- tidyr::gather(dat_qgcomp_weight2, edc, weight, 2:15, na.rm=TRUE, factor_key=TRUE)  #注意根据数据格式进行修改，容易忘记！！！！！
-dat_qgcomp_weight2_long$edc <- factor(dat_qgcomp_weight2_long$edc, levels = c("PFOS","PFOA","PFNA","PFDA","PFHxS",
-                                                                              "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP",
-                                                                              "TCC","TCS",
-                                                                              "BPA","BPS","BPF"))
-dat_qgcomp_weight2_long <- dat_qgcomp_weight2_long %>%
-  arrange(edc)
-
-dat2 <- tidyr::pivot_wider(dat_qgcomp_weight2_long, names_from = edc, values_from = weight) # 转换为行为“out”列为“edc”
-dat2 <- dat2[,-1]
-dat2 <- data.frame(dat2, check.names = FALSE)  # 禁止自动修改列名
-rownames(dat2) <- dat_qgcomp_weight2$out
-dat2_mat <- as.matrix(dat2)
-
-# 设置表型分组
-phenotypes <- c("Disorder and disease",
-                "Body measurement","Lipid and lipoprotein",
-                "Liver function","Kidney function",
-                "Glucose metabolism","Insulin metabolism","Blood pressure",
-                "Thyroid function","Hematological trait","Inflammation")
-phenotypes[1]
-split <- factor(c(rep(phenotypes[1],12),
-                  rep(phenotypes[2],6),rep(phenotypes[3],7),
-                  rep(phenotypes[4],4),rep(phenotypes[5],3),
-                  rep(phenotypes[6],3),rep(phenotypes[7],4),
-                  rep(phenotypes[8],3),rep(phenotypes[9],5),
-                  rep(phenotypes[10],6),rep(phenotypes[11],7)),
-                levels = phenotypes)
-
-
-### 作图 ###
-if(sample_name == "phy_edc_temp0_1"){
-  pdf(paste0("figures/supplementary_figures/(efig1a)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
-}
-
-if(sample_name == "phy_edc_temp0_2"){
-  pdf(paste0("figures/supplementary_figures/(efig1b)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
-}
-
-circos.par(start.degree = 90, 
-           points.overflow.warning = FALSE,
-           track.margin = c(0.008, 0.005),
-           gap.degree = c(rep(2,10),90)) # change to 1 to number of sector - 1
-
-# 设置外圈颜色
-corr_min <- min(dat1_mat,na.rm = TRUE)
-corr_max <- max(dat1_mat,na.rm = TRUE)
-# 创建颜色映射函数，均匀分配断点到 RdBu 颜色
-col_corr <- colorRamp2(
-  breaks = seq(corr_min, corr_max, length.out = 21), 
-  colors = rev(rdbu_colors)
-)
-
-# 设置内圈颜色
-weight_min <- min(dat2_mat)
-weight_max <- max(dat2_mat)
-# 创建颜色映射函数，均匀分配断点到 RdBu 颜色
-col_weight <- colorRamp2(
-  breaks = seq(weight_min, weight_max, length.out = length(inner_layer_color_scale)),  # weight不对称，因此颜色截取部分
-  colors = rev(brbg_colors[inner_layer_color_scale])
-)
-
-
-# 1. 绘制第一圈热图
-circos.heatmap(dat1_mat, cluster = FALSE, split = split, 
-               col = col_corr, na.col = "#EEEAE7", 
-               track.height = 0.19, 
-               cell.border = "white", cell.lwd = 0.4,
-               # bg.border = "grey", bg.lwd = 1, bg.lty = 2,
-               rownames.cex = 0.9, rownames.side = "outside") # 外圈名称字体大小设置
-# 2. 在第一圈热图第一个section左侧添加行名
-circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
-  if(CELL_META$sector.numeric.index == 1) { # the last sector
-    cn = colnames(dat1_mat)[5:1] # 编号反了，需要调整所以是5 to 1
-    n = length(cn)
-    circos.text(rep(CELL_META$cell.xlim[1], n) + convert_x(-1, "mm"), # 左边界外1mm  # CELL_META$cell.xlim[2] (右侧添加)
-                1:n - 0.5, 
-                labels = cn,
-                cex = 0.65, 
-                adj = c(1, 0.5), # 右对齐、垂直居中
-                facing = "downward",  # 强制垂直向下
-                niceFacing = FALSE  # 禁用自动旋转
-                )
+  if(sample_name == "phy_edc_temp0_1"){
+    inner_layer_color_scale <- c(8:38) # 内层色阶对应0.66 ~ -0.86
+  }else if(sample_name == "phy_edc_temp0_2"){
+    inner_layer_color_scale <- c(9:38) # 内层色阶对应0.61 ~ -0.87
   }
-}, bg.border = NA)
-
-
-# 3. 绘制第二圈热图
-circos.heatmap(dat2_mat, cluster = FALSE, split = split, 
-               col = col_weight, 
-               track.height = 0.30,
-               cell.border = "lightgrey", cell.lwd = 0.4
-               # bg.border = "grey", bg.lwd = 1, bg.lty = 2
-               )
-# 4. 在第二圈热图第一个section左侧添加行名
-circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
-  if(CELL_META$sector.numeric.index == 1) { # the last sector
-    cn = colnames(dat2_mat)[14:1] # 编号反了，需要调整所以是14 to 1
-    n = length(cn)
-    circos.text(rep(CELL_META$cell.xlim[1], n) + convert_x(-1, "mm"), # 左边界外0mm  # CELL_META$cell.xlim[2] (右侧添加)
-                1:n - 0.5, 
-                labels = cn,
-                cex = 0.52, 
-                adj = c(1, 0.5), # 右对齐、垂直居中
-                facing = "downward",  # 强制垂直向下
-                niceFacing = FALSE  # 禁用自动旋转
-    )
+  
+  #### 数据处理 (for circos heatmap & forest plot) ----
+  ### 设置纳入图片的暴露和结局
+  ## 暴露：EDC
+  exposure <- c("EDC_14","EDC_pos","EDC_neg","PFAS","PAE_6","TC","BP_1")
+  # 标准化名称
+  exposure_label <- c("EDCs (14)","EDCs (positive weight)","EDCs (negative weight)","PFAS (5)","PAEs (6)","Antimicrobials (2)","Bisphenols (1)")
+  
+  ## 结局：12类biomarker（用总人群（用10年指标，没有的用14年的补充））
+  outcome <- c("dm_incident_1014","ckd_incident_1014","cvd_incident_1021","cvd_incident_1014",
+               "dm_b","ckd_b","cvd_b","ob_b","abob_b","ir_b","dyslip_b","mets_b","nafld_b","hua_b","hpt_b","as_imt_b",
+               "bmi_b","height_b","weight_b","whr_b","wc_b","hc_b",
+               "tg_b","ldl_b","hdl_b","chol_b","apoa_b","apob_b","nonhdl_b",
+               "alt_b","ast_b","ggt_b","bia_b",
+               "egfr_b","scr_b","ua_b",
+               "glu0_b","glu120_b","vhba1c_b",
+               "ins0_b","ins120_b","homair_b","homab_b",
+               "sbp_b","dbp_b","pr_b",
+               "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
+               "hgb_b","plt_b","eos_f","lym_f","mon_f","neu_f",
+               "nlr_f","lmr_f","plr_f","sii_f","siri_f","wbc_b","crp_f")
+  outcome_final <- outcome
+  # 标准化名称
+  outcome_label <- c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2021)","Incident CVD (2010-2014)",
+                     "Diabetes","CKD","CVD","Obesity","Abdominal obesity","IR","Dyslipidemia","MetS","NAFLD","High UA","Hypertension","High CIMT",
+                     "BMI","Height","Weight","WHR","WC","HC",
+                     "TG","LDL-C","HDL-C","TC","ApoA-1","ApoB","Non-HDL-C",
+                     "ALT","AST","GGT","Bile acid",
+                     "eGFR","Serum creatinine","UA",
+                     "OGTT 0-h glucose","OGTT 2-h glucose","HbA1c",
+                     "OGTT 0-h insulin","OGTT 2-h insulin","HOMA-IR","HOMA-B",
+                     "SBP","DBP","PR",
+                     "FT3","FT4","TSH","TPOAb","TgAb",
+                     "Hemoglobin","Platelet count","Eosinophil count","Lymphocyte count","Monocyte count","Neutrophil count",
+                     "NLR","LMR","PLR","SII","SIRI","WBC","Hs-CRP")
+  
+  # 读取数据 (总人群)
+  results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,").xlsx"))
+  # 读取数据 (总人群)
+  results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,").xlsx"))
+  
+  results_qg <- rbind(results_qg_all1, results_qg_edc1) %>%
+    filter(exp %in% exposure & out %in% outcome_final)
+  results_qg <- results_qg[!(results_qg$out %in% c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014") & results_qg$method == "qgcomp bin"),] # 删除"cvd_incident_1021","ckd_incident_1014","dm_incident_1014"的logistic结果
+  colnames(results_qg)[9:22] <- gsub("_log10","",colnames(results_qg)[9:22])
+  
+  results_qg$z <- results_qg$estimate/results_qg$se
+  
+  # FDR 校正
+  # 以每个exposure表型为单位，校正outcome
+  dat <- results_qg %>%
+    group_by(exp) %>%  # 按exposure分组，校正outcome
+    mutate(p_adj_bh = p.adjust(p, method = "BH")) %>% # 对每个分组的P值进行FDR校正
+    ungroup()
+  
+  # EDC 权重数据整理
+  dat$numb_pos_weight <- rowSums(dat[, 9:22] > 0, na.rm = TRUE)# 计算每一行第9列到第22列中正数的数量
+  dat$numb_neg_weight <- rowSums(dat[, 9:22] < 0, na.rm = TRUE)# 计算每一行第9列到第22列中负数的数量
+  
+  dat$weight_threshold_pos <- 1 / dat$numb_pos_weight
+  dat$weight_threshold_neg <- 1 / dat$numb_neg_weight
+  
+  dat_edc <- dat[dat$exp == "EDC_14",]
+  dat_edc_19_long_qgcomp <- tidyr::gather(dat_edc, edc, weight, 9:22, na.rm=TRUE, factor_key=TRUE)  #注意根据数据格式进行修改，容易忘记！！！！！
+  
+  dat_qgcomp <- dat
+  dat_qgcomp$exp <- factor(dat_qgcomp$exp, levels = exposure, labels = exposure_label)
+  dat_qgcomp$out <- factor(dat_qgcomp$out, levels = outcome_final, labels = outcome_label)
+  dat_qgcomp <- dat_qgcomp %>% arrange(out,exp)
+  #### 数据处理 (for circos heatmap & forest plot) ####
+  
+  
+  ############################################# 环形热图 (qgcomp) #############################################
+  #### circos heatmap (删除 4 incidence outcome ["cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014"]) ----
+  # 提取数据做EDC和表型关联性环状热图
+  dat_qgcomp_corr <- dat_qgcomp[,c(1:8,23,24)]
+  dat_qgcomp_corr <- dat_qgcomp_corr[!dat_qgcomp_corr$out %in% c("Incident CVD (2010-2021)","Incident CVD (2010-2014)","Incident CKD (2010-2014)","Incident diabetes (2010-2014)") & !dat_qgcomp_corr$exp %in% c("EDCs (positive weight)","EDCs (negative weight)"),]
+  # 提取数据做EDC权重环状热图
+  dat_qgcomp_weight <- dat_qgcomp[dat_qgcomp$exp == "EDCs (14)",c(2,9:22,25:28)]
+  dat_qgcomp_weight <- dat_qgcomp_weight[!dat_qgcomp_weight$out %in% c("Incident CVD (2010-2021)","Incident CVD (2010-2014)","Incident CKD (2010-2014)","Incident diabetes (2010-2014)"),]
+  
+  ## QGCOMP 关联性
+  # 转换为wide格式data
+  dat_qgcomp_corr_3cols <- dat_qgcomp_corr
+  dat_qgcomp_corr_3cols <- dat_qgcomp_corr_3cols[,c("exp","out","z")]
+  # 由于有过大值和过小值，因此对原本数值再进行一次转换，减少数值间差异
+  dat_qgcomp_corr_3cols$z <- asinh(dat_qgcomp_corr_3cols$z) # 反双曲正弦变换（asinh）， 适用于正负值混合的数据，尤其适合处理尾部极端值，效果类似对数变换但对零值更平滑。
+  # 由于有过大值和过小值，因此对原本数值再进行一次log转换，减少数值间差异
+  dat1 <- tidyr::pivot_wider(dat_qgcomp_corr_3cols, names_from = exp, values_from = z) # 转换为行为“out”列为“exp”
+  dat1 <- data.frame(dat1, check.names = FALSE)  # 禁止自动修改列名
+  rownames(dat1) <- dat1$out
+  dat1 <- dat1[,-1]
+  dat1_mat <- as.matrix(dat1)
+  
+  ## QGCOMP 关联性(P值)
+  dat_qgcomp_p_3cols <- dat_qgcomp_corr[,c("exp","out","p_adj_bh")]
+  dat1_p <- tidyr::pivot_wider(dat_qgcomp_p_3cols, names_from = exp, values_from = p_adj_bh) # 转换为行为“out”列为“exp”
+  dat1_p <- data.frame(dat1_p, check.names = FALSE)  # 禁止自动修改列名
+  rownames(dat1_p) <- dat1_p$out
+  dat1_p <- dat1_p[,-1]
+  dat1_p_mat <- as.matrix(dat1_p)
+  dat1_mat[dat1_p_mat >= 0.05] <- NA
+  
+  # 把weight数据转换为long data排序
+  dat_qgcomp_weight2 <- dat_qgcomp_weight[,c(1:15)]
+  dat_qgcomp_weight2_long <- tidyr::gather(dat_qgcomp_weight2, edc, weight, 2:15, na.rm=TRUE, factor_key=TRUE)  #注意根据数据格式进行修改，容易忘记！！！！！
+  dat_qgcomp_weight2_long$edc <- factor(dat_qgcomp_weight2_long$edc, levels = c("PFOS","PFOA","PFNA","PFDA","PFHxS",
+                                                                                "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP",
+                                                                                "TCC","TCS",
+                                                                                "BPA","BPS","BPF"))
+  dat_qgcomp_weight2_long <- dat_qgcomp_weight2_long %>%
+    arrange(edc)
+  
+  dat2 <- tidyr::pivot_wider(dat_qgcomp_weight2_long, names_from = edc, values_from = weight) # 转换为行为“out”列为“edc”
+  dat2 <- dat2[,-1]
+  dat2 <- data.frame(dat2, check.names = FALSE)  # 禁止自动修改列名
+  rownames(dat2) <- dat_qgcomp_weight2$out
+  dat2_mat <- as.matrix(dat2)
+  
+  # 设置表型分组
+  phenotypes <- c("Disorder and disease",
+                  "Body measurement","Lipid and lipoprotein",
+                  "Liver function","Kidney function",
+                  "Glucose metabolism","Insulin metabolism","Blood pressure",
+                  "Thyroid function","Hematological trait","Inflammation")
+  phenotypes[1]
+  split <- factor(c(rep(phenotypes[1],12),
+                    rep(phenotypes[2],6),rep(phenotypes[3],7),
+                    rep(phenotypes[4],4),rep(phenotypes[5],3),
+                    rep(phenotypes[6],3),rep(phenotypes[7],4),
+                    rep(phenotypes[8],3),rep(phenotypes[9],5),
+                    rep(phenotypes[10],6),rep(phenotypes[11],7)),
+                  levels = phenotypes)
+  
+  
+  ### 作图 ###
+  if(sample_name == "phy_edc_temp0_1"){
+    pdf(paste0("figures/supplementary_figures/(efig1a)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
   }
-}, bg.border = NA)
-
-
-# 5. 绘制第三圈sector分类
-circos.track(ylim = c(0, 1), 
-             track.height = 0.019,
-             bg.col = sector_colors, bg.border = "lightgrey", bg.lwd = 0.1)
-# 6. 添加sector图例
-legend(x = -0.6, y = 0.72, pch = 15, col = sector_colors, legend = phenotypes, 
-       cex = 0.65,
-       box.col = "white",
-       ncol = 1, text.col = "black",
-       title = " ", title.col = "black", title.adj = 0)
-
-
-# 7. 创建外圈热图的图例 "ComplexHeatmap"包
-min_neg_zscore <- round(min(dat1_mat, na.rm = TRUE),1)
-max_neg_zscore <- round(max(dat1_mat[dat1_mat < 0], na.rm = TRUE),1)
-min_pos_zscore <- round(min(dat1_mat[dat1_mat > 0], na.rm = TRUE),1)
-max_pos_zscore <- round(max(dat1_mat, na.rm = TRUE),1)
-legend_corr <- Legend(
-  title = "Z", 
-  col_fun = col_corr, 
-  at = c(min_neg_zscore, max_neg_zscore, 0, min_pos_zscore, max_pos_zscore),  # 自定义刻度值
-  title_gp = gpar(fontsize = 6),  # 标题字体大小
-  labels_gp = gpar(fontsize = 6), # 刻度标签字体大小
-  grid_width = unit(2.5, "mm"),     # 色块宽度
-  legend_height = unit(5, "mm")     # 图例高度
-)
-# 8. 创建内圈热图的图例 "ComplexHeatmap"包
-min_weight <- round(min(dat_qgcomp_weight2_long$weight),1)
-max_weight <- round(max(dat_qgcomp_weight2_long$weight),1)
-legend_weight <- Legend(
-  title = "Weight", 
-  col_fun = col_weight, 
-  at = c(min_weight, round(min_weight/2,1), 0, round(max_weight/2,1), max_weight),  # 自定义刻度值
-  title_gp = gpar(fontsize = 6),  # 标题字体大小
-  labels_gp = gpar(fontsize = 6), # 刻度标签字体大小
-  grid_width = unit(2.5, "mm"),     # 色块宽度
-  legend_height = unit(5, "mm")     # 图例高度
-)
-# 9. 合并图例
-combined_legend <- packLegend(legend_corr, legend_weight, 
-                              direction = "horizontal")
-# 10. 绘制图例（在circos.clear()之前调用）
-grid.draw(combined_legend)
-
-
-circos.clear()
-
-dev.off()
-
-# 逆变换恢复原始数据（反双曲正弦变换 asinh）
-# sample_name <- "phy_edc_temp0_1"  # 男性
-sinh(c(3.2,1.6,-1.6,-3.3))
-# sample_name <- "phy_edc_temp0_2"  # 女性
-sinh(c(3.3,1.5,-1.6,-3.3))
-#### circos heatmap (删除 4 incidence outcome ["cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014"]) ####
+  
+  if(sample_name == "phy_edc_temp0_2"){
+    pdf(paste0("figures/supplementary_figures/(efig1b)_circos_heatmap_edc_outcomes_sex_specific_(",sample_name,").pdf"), width = 9, height = 9)
+  }
+  
+  circos.par(start.degree = 90, 
+             points.overflow.warning = FALSE,
+             track.margin = c(0.008, 0.005),
+             gap.degree = c(rep(2,10),90)) # change to 1 to number of sector - 1
+  
+  # 设置外圈颜色
+  corr_min <- min(dat1_mat,na.rm = TRUE)
+  corr_max <- max(dat1_mat,na.rm = TRUE)
+  # 创建颜色映射函数，均匀分配断点到 RdBu 颜色
+  col_corr <- colorRamp2(
+    breaks = seq(corr_min, corr_max, length.out = 21), 
+    colors = rev(rdbu_colors)
+  )
+  
+  # 设置内圈颜色
+  weight_min <- min(dat2_mat)
+  weight_max <- max(dat2_mat)
+  # 创建颜色映射函数，均匀分配断点到 RdBu 颜色
+  col_weight <- colorRamp2(
+    breaks = seq(weight_min, weight_max, length.out = length(inner_layer_color_scale)),  # weight不对称，因此颜色截取部分
+    colors = rev(brbg_colors[inner_layer_color_scale])
+  )
+  
+  
+  # 1. 绘制第一圈热图
+  circos.heatmap(dat1_mat, cluster = FALSE, split = split, 
+                 col = col_corr, na.col = "#EEEAE7", 
+                 track.height = 0.19, 
+                 cell.border = "white", cell.lwd = 0.4,
+                 # bg.border = "grey", bg.lwd = 1, bg.lty = 2,
+                 rownames.cex = 0.9, rownames.side = "outside") # 外圈名称字体大小设置
+  # 2. 在第一圈热图第一个section左侧添加行名
+  circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+    if(CELL_META$sector.numeric.index == 1) { # the last sector
+      cn = colnames(dat1_mat)[5:1] # 编号反了，需要调整所以是5 to 1
+      n = length(cn)
+      circos.text(rep(CELL_META$cell.xlim[1], n) + convert_x(-1, "mm"), # 左边界外1mm  # CELL_META$cell.xlim[2] (右侧添加)
+                  1:n - 0.5, 
+                  labels = cn,
+                  cex = 0.65, 
+                  adj = c(1, 0.5), # 右对齐、垂直居中
+                  facing = "downward",  # 强制垂直向下
+                  niceFacing = FALSE  # 禁用自动旋转
+      )
+    }
+  }, bg.border = NA)
+  
+  
+  # 3. 绘制第二圈热图
+  circos.heatmap(dat2_mat, cluster = FALSE, split = split, 
+                 col = col_weight, 
+                 track.height = 0.30,
+                 cell.border = "lightgrey", cell.lwd = 0.4
+                 # bg.border = "grey", bg.lwd = 1, bg.lty = 2
+  )
+  # 4. 在第二圈热图第一个section左侧添加行名
+  circos.track(track.index = get.current.track.index(), panel.fun = function(x, y) {
+    if(CELL_META$sector.numeric.index == 1) { # the last sector
+      cn = colnames(dat2_mat)[14:1] # 编号反了，需要调整所以是14 to 1
+      n = length(cn)
+      circos.text(rep(CELL_META$cell.xlim[1], n) + convert_x(-1, "mm"), # 左边界外0mm  # CELL_META$cell.xlim[2] (右侧添加)
+                  1:n - 0.5, 
+                  labels = cn,
+                  cex = 0.52, 
+                  adj = c(1, 0.5), # 右对齐、垂直居中
+                  facing = "downward",  # 强制垂直向下
+                  niceFacing = FALSE  # 禁用自动旋转
+      )
+    }
+  }, bg.border = NA)
+  
+  
+  # 5. 绘制第三圈sector分类
+  circos.track(ylim = c(0, 1), 
+               track.height = 0.019,
+               bg.col = sector_colors, bg.border = "lightgrey", bg.lwd = 0.1)
+  # 6. 添加sector图例
+  legend(x = -0.6, y = 0.72, pch = 15, col = sector_colors, legend = phenotypes, 
+         cex = 0.65,
+         box.col = "white",
+         ncol = 1, text.col = "black",
+         title = " ", title.col = "black", title.adj = 0)
+  
+  
+  # 7. 创建外圈热图的图例 "ComplexHeatmap"包
+  min_neg_zscore <- round(min(dat1_mat, na.rm = TRUE),1)
+  max_neg_zscore <- round(max(dat1_mat[dat1_mat < 0], na.rm = TRUE),1)
+  min_pos_zscore <- round(min(dat1_mat[dat1_mat > 0], na.rm = TRUE),1)
+  max_pos_zscore <- round(max(dat1_mat, na.rm = TRUE),1)
+  legend_corr <- Legend(
+    title = "Z", 
+    col_fun = col_corr, 
+    at = c(min_neg_zscore, max_neg_zscore, 0, min_pos_zscore, max_pos_zscore),  # 自定义刻度值
+    title_gp = gpar(fontsize = 6),  # 标题字体大小
+    labels_gp = gpar(fontsize = 6), # 刻度标签字体大小
+    grid_width = unit(2.5, "mm"),     # 色块宽度
+    legend_height = unit(5, "mm")     # 图例高度
+  )
+  # 8. 创建内圈热图的图例 "ComplexHeatmap"包
+  min_weight <- round(min(dat_qgcomp_weight2_long$weight),1)
+  max_weight <- round(max(dat_qgcomp_weight2_long$weight),1)
+  legend_weight <- Legend(
+    title = "Weight", 
+    col_fun = col_weight, 
+    at = c(min_weight, round(min_weight/2,1), 0, round(max_weight/2,1), max_weight),  # 自定义刻度值
+    title_gp = gpar(fontsize = 6),  # 标题字体大小
+    labels_gp = gpar(fontsize = 6), # 刻度标签字体大小
+    grid_width = unit(2.5, "mm"),     # 色块宽度
+    legend_height = unit(5, "mm")     # 图例高度
+  )
+  # 9. 合并图例
+  combined_legend <- packLegend(legend_corr, legend_weight, 
+                                direction = "horizontal")
+  # 10. 绘制图例（在circos.clear()之前调用）
+  grid.draw(combined_legend)
+  
+  
+  circos.clear()
+  
+  dev.off()
+  
+  # 逆变换恢复原始数据（反双曲正弦变换 asinh）
+  # sample_name <- "phy_edc_temp0_1"  # 男性
+  sinh(c(3.2,1.6,-1.6,-3.3))
+  # sample_name <- "phy_edc_temp0_2"  # 女性
+  sinh(c(3.3,1.5,-1.6,-3.3))
+  #### circos heatmap (删除 4 incidence outcome ["cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014"]) ####
+}

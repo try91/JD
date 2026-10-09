@@ -2,15 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
-
-## 设置人群名称 ##
-
-# 男性 (总人群, n=3930)
-sample_name <- "phy_edc_temp0_1"  # 男性 (总人群, n=3930)
-
-# # 女性 (总人群, n=6394)
-# sample_name <- "phy_edc_temp0_2"  # 女性 (总人群, n=6394)
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 PFAS_colors <- colorRampPalette(c("#f55d78","#FFFFFF"))(50)[c(1,8,15,22,29)]
@@ -117,190 +109,196 @@ select_out_cat <- c("dm_b","ckd_b","cvd_b","ob_b","abob_b","ir_b","dyslip_b","me
 select_out_cat_labels <- c("Diabetes","CKD","CVD","Obesity","Abdominal obesity","IR","Dyslipidemia","MetS","NAFLD","High UA","Hypertension","High CIMT")
 #### 结局变量名汇总 ####
 
-#### 数据处理 ----
-## 读取COX & Logistic分析结果
-cox_results_edc_incident_all <- readxl::read_xlsx("results/cox/sex_specific_cox_results_edc_incident.xlsx")
-cox_results_edc_index_incident_all <- readxl::read_xlsx("results/cox/sex_specific_cox_results_edc_index_incident.xlsx")
 
-logistic_results_edc_incident_all <- readxl::read_xlsx("results/glm/sex_specific_logistic_results_edc_incident.xlsx")
-logistic_results_edc_index_incident_all <- readxl::read_xlsx("results/glm/sex_specific_logistic_results_edc_index_incident.xlsx")
-
-## 读取Qgcomp分析结果
-qg_results_q2 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,").xlsx"))
-qg_results_q2_pn <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,").xlsx"))
-
-
-## 整合分析结果
-cox_results <- rbind(cox_results_edc_incident_all,cox_results_edc_index_incident_all)
-cox_results <- cox_results[cox_results$sample == sample_name,]
-cox_results <- cox_results[cox_results$adjust == "adj",]
-cox_results <- cox_results[cox_results$outcome %in% phy_incident_cat,]
-cox_results <- cox_results[cox_results$rowname %in% edc_index_b_keep,]
-cox_results <- cox_results[,c(1,3:13)]
-colnames(cox_results)[c(1:4)] <- c("estimate","se","z","p")
-out_cox <- unique(cox_results$outcome) # 提取结局变量
-
-logistic_results <- rbind(logistic_results_edc_incident_all,logistic_results_edc_index_incident_all)
-logistic_results <- logistic_results[logistic_results$sample == sample_name,]
-logistic_results <- logistic_results[logistic_results$adjust == "adj",]
-logistic_results <- logistic_results[logistic_results$outcome %in% select_out_cat,]
-logistic_results <- logistic_results[logistic_results$rowname %in% edc_index_b_keep,]
-colnames(logistic_results)[c(1:4)] <- c("estimate","se","z","p")
-out_logistic <- unique(logistic_results$outcome) # 提取结局变量
-
-qg_results_q2 <- rbind(qg_results_q2,qg_results_q2_pn)
-qg_results_q2 <- qg_results_q2[qg_results_q2$sample == sample_name,]
-qg_results_q2 <- qg_results_q2[,c(1:8)]
-qg_results_q2$z <- qg_results_q2$estimate / qg_results_q2$se 
-colnames(qg_results_q2)[1:2] <- c("rowname","outcome")
-qg_results_q2$outcome <- ifelse((qg_results_q2$outcome %in% c(phy_incident_cat,phy_censor_cat)) & (qg_results_q2$method == "qgcomp bin"), paste0(qg_results_q2$outcome,"_logistic"), qg_results_q2$outcome)
-qg_results_q2 <- qg_results_q2[qg_results_q2$outcome %in% c(phy_incident_cat,select_out_cat),]
-qg_results_q2 <- qg_results_q2[qg_results_q2$rowname %in% c("EDC_14", "PFAS", "PAE_6", "BP_1", "TC"),]
-
-
-dat_result1 <- rbind(cox_results,logistic_results)
-dat_result1_1 <- dat_result1[dat_result1$rowname %in% c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_tc_b","edc_count2_bp1_b"),]
-# 以每个OUT表型为单位进行校正
-dat_result1_1 <- dat_result1_1 %>%
-  group_by(outcome) %>%  # 按outcome分组
-  mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
-
-dat_result1_2 <- dat_result1[dat_result1$rowname %in% c("edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_tc_b","edc_score_bp1_b"),]
-# 以每个OUT表型为单位进行校正
-dat_result1_2 <- dat_result1_2 %>%
-  group_by(outcome) %>%  # 按outcome分组
-  mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
-
-# 以每个OUT表型为单位进行校正
-qg_results_q2 <- qg_results_q2 %>%
-  group_by(outcome) %>%  # 按outcome分组
-  mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
-
-dat_result1_1$method_type <- "edc_count_index"
-dat_result1_2$method_type <- "edc_score"
-qg_results_q2$method_type <- "qgcomp"
-
-
-dat_result_all <- bind_rows(dat_result1_1,dat_result1_2,qg_results_q2)
-
-dat_result_all$exposure_type <- ifelse(dat_result_all$rowname %in% c("EDC_14","edc_count2_edc14_b","edc_score_edc14_b"), "EDCs (14)",
-                                       ifelse(dat_result_all$rowname %in% c("PFAS","edc_count2_pfas_b","edc_score_pfas_b"), "PFAS (5)",
-                                              ifelse(dat_result_all$rowname %in% c("PAE_6","edc_count2_pae6_b","edc_score_pae6_b"), "PAEs (6)",
-                                                     ifelse(dat_result_all$rowname %in% c("TC","edc_count2_tc_b","edc_score_tc_b"), "Antimicrobials (2)", "Bisphenols (1)"))))
-
-
-table(dat_result1_1$rowname,dat_result1_1$outcome)
-table(dat_result1_2$rowname,dat_result1_2$outcome)
-table(qg_results_q2$rowname,qg_results_q2$outcome)
-
-dat_result_all$rowname <- factor(dat_result_all$rowname, levels = c("EDC_14", "PFAS", "PAE_6", "TC", "BP_1",
-                                                                    "edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_tc_b","edc_count2_bp1_b",
-                                                                    "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_tc_b","edc_score_bp1_b"),
-                                 labels = c("EDCs (14)", "PFAS (5)", "PAEs (6)", "Antimicrobials (2)", "Bisphenols (1)",
-                                            "EDC Scoremedian (14 EDCs)", "EDC Scoremedian (PFAS)", "EDC Scoremedian (PAEs)", "EDC Scoremedian (antimicrobials)", "EDC Scoremedian (bisphenols)",    # EDC count index
-                                            "EDC Scorequartile (14 EDCs)", "EDC Scorequartile (PFAS)", "EDC Scorequartile (PAEs)", "EDC Scorequartile (antimicrobials)", "EDC Scorequartile (bisphenols)"))
-
-dat_result_all$outcome <- factor(dat_result_all$outcome,
-                                 levels = rev(c("dm_incident_1014","ckd_incident_1014","cvd_incident_1014","cvd_incident_1021",select_out_cat)),
-                                 labels = rev(c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2014)","Incident CVD (2010-2021)",select_out_cat_labels)))
-
-dat_result_all$method_type <- factor(dat_result_all$method_type, levels = rev(c("qgcomp", "edc_count_index", "edc_score")))
-
-
-# 计算95%CI
-dat_result_all$z.lci <- dat_result_all$z - 1.96
-dat_result_all$z.uci <- dat_result_all$z + 1.96
-
-dat_result_all$lci <- dat_result_all$estimate - 1.96*dat_result_all$se
-dat_result_all$uci <- dat_result_all$estimate + 1.96*dat_result_all$se
-#### 数据处理 ####
-
-
-############################################# 森林图 #############################################
-#### forest plot (对比edc index和qgcomp发现对4个主要outcome和12个次要outcome的结果) ----
-# 构建绘制森林图的函数 (根据每一个污染物index分开，5列for附图)
-forest_function1 <- function(DAT,X_TITLE){
-
-  f <- ggplot(data=DAT, aes(x=z, y=outcome, col=method_type)) +
-    geom_errorbar(aes(xmin=z.lci, xmax=z.uci, col=method_type), width=0, cex=0.8, position = position_dodge(0.55)) +
-    geom_point(aes(col=method_type), cex = 2.4, position = position_dodge(0.55)) +
-    geom_text(aes(label = text, group = method_type),
-              hjust = -0.5,
-              size = 3.6,
-              position = position_dodge(width = 0.65)) +
-    
-    scale_x_continuous(
-      labels = function(x) round(x, 1)  # 显示为x，保留1位小数
-    ) +
-    
-    geom_vline(xintercept = 0,
-               linetype = "dashed",
-               linewidth = 0.5) +
-    
-    # 将颜色、图例标题、整合到 scale_colour_manual
-    scale_colour_manual(
-      name = "",  # legend title
-      
-      # 设置颜色
-      values = c("qgcomp" = "#476066",
-                 "edc_count_index" = "#d62c2c",
-                 "edc_score" = "#591129"),
-      # 直接在scale_color_manual中设置标签
-      labels = c("qgcomp" = "Mixture effectqg-comp",  
-                 "edc_count_index" = "EDC Scoremedian",
-                 "edc_score" = "EDC Scorequartile"),
-      # 通过breaks参数明确指定图例顺序
-      breaks = c("qgcomp",
-                 "edc_count_index",
-                 "edc_score")
-    ) +
-    
-    labs(x="Z (95% CI)") +
-    
-    # 纵向排列面板
-    facet_wrap(~exposure_type, ncol = 5, scales = "free_x") +   # x轴自由缩放
-    
-    theme_classic() +
-    
-    theme(
-      axis.title.y = element_blank(),
-      axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
-      
-      strip.text = element_text(size = 15, colour = "black"), # facet_wrap面板字体大小
-     
-      axis.line = element_line(size = 0.5, colour = "black"),
-      strip.background = element_rect(size = 0.5),
-      
-      panel.spacing.x = unit(8, "mm"),  # 横向间距
-      panel.spacing.y = unit(8, "mm"), # 纵向间距
-      
-      axis.ticks = element_line(size = 0.5, colour = "black"),# 调整 X 轴刻度线, 线宽(默认0.5)
-      axis.ticks.length = unit(0.1, "cm"),  # 可选：调整刻度线长度(需配合 axis.ticks.length), 长度(默认0.2cm)
-      
-      axis.text.x = element_text(size = 15, colour = "black"), # 调整x轴文字
-      axis.text.y = element_text(size = 15, colour = "black"),
-      
-      legend.position = "bottom",
-      legend.title = element_blank(),
-      legend.text = element_text(size = 15, colour = "black")   # 调整legend文本大小
-    )
+# # 男性 (总人群, n=3930)
+# sample_name <- "phy_edc_temp0_1"  # 男性 (总人群, n=3930)
+# # 女性 (总人群, n=6394)
+# sample_name <- "phy_edc_temp0_2"  # 女性 (总人群, n=6394)
+for(sample_name in c("phy_edc_temp0_1","phy_edc_temp0_2")){
+  #### 数据处理 ----
+  ## 读取COX & Logistic分析结果
+  cox_results_edc_incident_all <- readxl::read_xlsx("results/cox/sex_specific_cox_results_edc_incident.xlsx")
+  cox_results_edc_index_incident_all <- readxl::read_xlsx("results/cox/sex_specific_cox_results_edc_index_incident.xlsx")
   
-  return(f)
+  logistic_results_edc_incident_all <- readxl::read_xlsx("results/glm/sex_specific_logistic_results_edc_incident.xlsx")
+  logistic_results_edc_index_incident_all <- readxl::read_xlsx("results/glm/sex_specific_logistic_results_edc_index_incident.xlsx")
+  
+  ## 读取Qgcomp分析结果
+  qg_results_q2 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(",sample_name,").xlsx"))
+  qg_results_q2_pn <- readxl::read_xlsx(paste0("results/correlations/qgcomp/qgcomp_results_(q2)_(edc+-)_(",sample_name,").xlsx"))
+  
+  
+  ## 整合分析结果
+  cox_results <- rbind(cox_results_edc_incident_all,cox_results_edc_index_incident_all)
+  cox_results <- cox_results[cox_results$sample == sample_name,]
+  cox_results <- cox_results[cox_results$adjust == "adj",]
+  cox_results <- cox_results[cox_results$outcome %in% phy_incident_cat,]
+  cox_results <- cox_results[cox_results$rowname %in% edc_index_b_keep,]
+  cox_results <- cox_results[,c(1,3:13)]
+  colnames(cox_results)[c(1:4)] <- c("estimate","se","z","p")
+  out_cox <- unique(cox_results$outcome) # 提取结局变量
+  
+  logistic_results <- rbind(logistic_results_edc_incident_all,logistic_results_edc_index_incident_all)
+  logistic_results <- logistic_results[logistic_results$sample == sample_name,]
+  logistic_results <- logistic_results[logistic_results$adjust == "adj",]
+  logistic_results <- logistic_results[logistic_results$outcome %in% select_out_cat,]
+  logistic_results <- logistic_results[logistic_results$rowname %in% edc_index_b_keep,]
+  colnames(logistic_results)[c(1:4)] <- c("estimate","se","z","p")
+  out_logistic <- unique(logistic_results$outcome) # 提取结局变量
+  
+  qg_results_q2 <- rbind(qg_results_q2,qg_results_q2_pn)
+  qg_results_q2 <- qg_results_q2[qg_results_q2$sample == sample_name,]
+  qg_results_q2 <- qg_results_q2[,c(1:8)]
+  qg_results_q2$z <- qg_results_q2$estimate / qg_results_q2$se 
+  colnames(qg_results_q2)[1:2] <- c("rowname","outcome")
+  qg_results_q2$outcome <- ifelse((qg_results_q2$outcome %in% c(phy_incident_cat,phy_censor_cat)) & (qg_results_q2$method == "qgcomp bin"), paste0(qg_results_q2$outcome,"_logistic"), qg_results_q2$outcome)
+  qg_results_q2 <- qg_results_q2[qg_results_q2$outcome %in% c(phy_incident_cat,select_out_cat),]
+  qg_results_q2 <- qg_results_q2[qg_results_q2$rowname %in% c("EDC_14", "PFAS", "PAE_6", "BP_1", "TC"),]
+  
+  
+  dat_result1 <- rbind(cox_results,logistic_results)
+  dat_result1_1 <- dat_result1[dat_result1$rowname %in% c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_tc_b","edc_count2_bp1_b"),]
+  # 以每个OUT表型为单位进行校正
+  dat_result1_1 <- dat_result1_1 %>%
+    group_by(outcome) %>%  # 按outcome分组
+    mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
+  
+  dat_result1_2 <- dat_result1[dat_result1$rowname %in% c("edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_tc_b","edc_score_bp1_b"),]
+  # 以每个OUT表型为单位进行校正
+  dat_result1_2 <- dat_result1_2 %>%
+    group_by(outcome) %>%  # 按outcome分组
+    mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
+  
+  # 以每个OUT表型为单位进行校正
+  qg_results_q2 <- qg_results_q2 %>%
+    group_by(outcome) %>%  # 按outcome分组
+    mutate(p_adj_bh = p.adjust(p, method = "BH"))  # 对每个分组的P值进行FDR校正
+  
+  dat_result1_1$method_type <- "edc_count_index"
+  dat_result1_2$method_type <- "edc_score"
+  qg_results_q2$method_type <- "qgcomp"
+  
+  
+  dat_result_all <- bind_rows(dat_result1_1,dat_result1_2,qg_results_q2)
+  
+  dat_result_all$exposure_type <- ifelse(dat_result_all$rowname %in% c("EDC_14","edc_count2_edc14_b","edc_score_edc14_b"), "EDCs (14)",
+                                         ifelse(dat_result_all$rowname %in% c("PFAS","edc_count2_pfas_b","edc_score_pfas_b"), "PFAS (5)",
+                                                ifelse(dat_result_all$rowname %in% c("PAE_6","edc_count2_pae6_b","edc_score_pae6_b"), "PAEs (6)",
+                                                       ifelse(dat_result_all$rowname %in% c("TC","edc_count2_tc_b","edc_score_tc_b"), "Antimicrobials (2)", "Bisphenols (1)"))))
+  
+  
+  table(dat_result1_1$rowname,dat_result1_1$outcome)
+  table(dat_result1_2$rowname,dat_result1_2$outcome)
+  table(qg_results_q2$rowname,qg_results_q2$outcome)
+  
+  dat_result_all$rowname <- factor(dat_result_all$rowname, levels = c("EDC_14", "PFAS", "PAE_6", "TC", "BP_1",
+                                                                      "edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_tc_b","edc_count2_bp1_b",
+                                                                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_tc_b","edc_score_bp1_b"),
+                                   labels = c("EDCs (14)", "PFAS (5)", "PAEs (6)", "Antimicrobials (2)", "Bisphenols (1)",
+                                              "EDC Scoremedian (14 EDCs)", "EDC Scoremedian (PFAS)", "EDC Scoremedian (PAEs)", "EDC Scoremedian (antimicrobials)", "EDC Scoremedian (bisphenols)",    # EDC count index
+                                              "EDC Scorequartile (14 EDCs)", "EDC Scorequartile (PFAS)", "EDC Scorequartile (PAEs)", "EDC Scorequartile (antimicrobials)", "EDC Scorequartile (bisphenols)"))
+  
+  dat_result_all$outcome <- factor(dat_result_all$outcome,
+                                   levels = rev(c("dm_incident_1014","ckd_incident_1014","cvd_incident_1014","cvd_incident_1021",select_out_cat)),
+                                   labels = rev(c("Incident diabetes (2010-2014)","Incident CKD (2010-2014)","Incident CVD (2010-2014)","Incident CVD (2010-2021)",select_out_cat_labels)))
+  
+  dat_result_all$method_type <- factor(dat_result_all$method_type, levels = rev(c("qgcomp", "edc_count_index", "edc_score")))
+  
+  
+  # 计算95%CI
+  dat_result_all$z.lci <- dat_result_all$z - 1.96
+  dat_result_all$z.uci <- dat_result_all$z + 1.96
+  
+  dat_result_all$lci <- dat_result_all$estimate - 1.96*dat_result_all$se
+  dat_result_all$uci <- dat_result_all$estimate + 1.96*dat_result_all$se
+  #### 数据处理 ####
+  
+  
+  ############################################# 森林图 #############################################
+  #### forest plot (对比edc index和qgcomp发现对4个主要outcome和12个次要outcome的结果) ----
+  # 构建绘制森林图的函数 (根据每一个污染物index分开，5列for附图)
+  forest_function1 <- function(DAT,X_TITLE){
+    
+    f <- ggplot(data=DAT, aes(x=z, y=outcome, col=method_type)) +
+      geom_errorbar(aes(xmin=z.lci, xmax=z.uci, col=method_type), width=0, cex=0.8, position = position_dodge(0.55)) +
+      geom_point(aes(col=method_type), cex = 2.4, position = position_dodge(0.55)) +
+      geom_text(aes(label = text, group = method_type),
+                hjust = -0.5,
+                size = 3.6,
+                position = position_dodge(width = 0.65)) +
+      
+      scale_x_continuous(
+        labels = function(x) round(x, 1)  # 显示为x，保留1位小数
+      ) +
+      
+      geom_vline(xintercept = 0,
+                 linetype = "dashed",
+                 linewidth = 0.5) +
+      
+      # 将颜色、图例标题、整合到 scale_colour_manual
+      scale_colour_manual(
+        name = "",  # legend title
+        
+        # 设置颜色
+        values = c("qgcomp" = "#476066",
+                   "edc_count_index" = "#d62c2c",
+                   "edc_score" = "#591129"),
+        # 直接在scale_color_manual中设置标签
+        labels = c("qgcomp" = "Mixture effectqg-comp",  
+                   "edc_count_index" = "EDC Scoremedian",
+                   "edc_score" = "EDC Scorequartile"),
+        # 通过breaks参数明确指定图例顺序
+        breaks = c("qgcomp",
+                   "edc_count_index",
+                   "edc_score")
+      ) +
+      
+      labs(x="Z (95% CI)") +
+      
+      # 纵向排列面板
+      facet_wrap(~exposure_type, ncol = 5, scales = "free_x") +   # x轴自由缩放
+      
+      theme_classic() +
+      
+      theme(
+        axis.title.y = element_blank(),
+        axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
+        
+        strip.text = element_text(size = 15, colour = "black"), # facet_wrap面板字体大小
+        
+        axis.line = element_line(size = 0.5, colour = "black"),
+        strip.background = element_rect(size = 0.5),
+        
+        panel.spacing.x = unit(8, "mm"),  # 横向间距
+        panel.spacing.y = unit(8, "mm"), # 纵向间距
+        
+        axis.ticks = element_line(size = 0.5, colour = "black"),# 调整 X 轴刻度线, 线宽(默认0.5)
+        axis.ticks.length = unit(0.1, "cm"),  # 可选：调整刻度线长度(需配合 axis.ticks.length), 长度(默认0.2cm)
+        
+        axis.text.x = element_text(size = 15, colour = "black"), # 调整x轴文字
+        axis.text.y = element_text(size = 15, colour = "black"),
+        
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 15, colour = "black")   # 调整legend文本大小
+      )
+    
+    return(f)
+  }
+  
+  # 绘制森林图比较构建的EDC index和qgcomp结果
+  dat_result_all$exposure_type <- factor(dat_result_all$exposure_type, levels = c("EDCs (14)", "PFAS (5)", "PAEs (6)", "Antimicrobials (2)", "Bisphenols (1)"))
+  dat_result_all$text <- paste0(sprintf("%.3f", dat_result_all$z)," (",sprintf("%.3f", dat_result_all$z.lci),", ",sprintf("%.3f", dat_result_all$z.uci),")") 
+  
+  f_forest1 <- forest_function1(dat_result_all)
+  
+  if(sample_name == "phy_edc_temp0_1"){
+    ggsave(f_forest1, filename=paste0("figures/supplementary_figures/(efig4a)_forest_compare_edc_qgcomp_outcome_sex_specific_(",sample_name,").pdf"), width = 13, height = 12, limitsize = FALSE)
+  }
+  
+  if(sample_name == "phy_edc_temp0_2"){
+    ggsave(f_forest1, filename=paste0("figures/supplementary_figures/(efig4b)_forest_compare_edc_qgcomp_outcome_sex_specific_(",sample_name,").pdf"), width = 13, height = 12, limitsize = FALSE)
+  }
+  #### forest plot (对比edc index和qgcomp发现对4个主要outcome和12个次要outcome的结果) ####
 }
 
-
-# 绘制森林图比较构建的EDC index和qgcomp结果
-dat_result_all$exposure_type <- factor(dat_result_all$exposure_type, levels = c("EDCs (14)", "PFAS (5)", "PAEs (6)", "Antimicrobials (2)", "Bisphenols (1)"))
-dat_result_all$text <- paste0(sprintf("%.3f", dat_result_all$z)," (",sprintf("%.3f", dat_result_all$z.lci),", ",sprintf("%.3f", dat_result_all$z.uci),")") 
-
-
-f_forest1 <- forest_function1(dat_result_all)
-
-if(sample_name == "phy_edc_temp0_1"){
-  ggsave(f_forest1, filename=paste0("figures/supplementary_figures/(efig4a)_forest_compare_edc_qgcomp_outcome_sex_specific_(",sample_name,").pdf"), width = 13, height = 12, limitsize = FALSE)
-}
-
-if(sample_name == "phy_edc_temp0_2"){
-  ggsave(f_forest1, filename=paste0("figures/supplementary_figures/(efig4b)_forest_compare_edc_qgcomp_outcome_sex_specific_(",sample_name,").pdf"), width = 13, height = 12, limitsize = FALSE)
-}
-#### forest plot (对比edc index和qgcomp发现对4个主要outcome和12个次要outcome的结果) ####

@@ -3,10 +3,10 @@ library(dplyr)
 library(ggplot2)
 library(corrplot)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
-edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
 # 统计每人血液中detected的EDC和大于中位数的人数 #
 {
   # 设置检测上下限
@@ -117,7 +117,7 @@ edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header =
   columns_containing_q3 <- grep("_Q3_flag", names(edc_dat), value = TRUE) # 19 EDC
   edc_dat$num_edc3 <- rowSums(edc_dat[, columns_containing_q3], na.rm = TRUE) # 19 EDC
 }
-micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
 phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
   left_join(micro_dat, by = "ID")
