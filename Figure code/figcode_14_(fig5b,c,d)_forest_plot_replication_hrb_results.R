@@ -3,7 +3,96 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
+
+#### 变量整理 ----
+# 菌群2014菌群 (分类和连续)
+# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+mp4_s_names <- colnames(micro_dat)[3:361]
+mp4_g_names <- colnames(micro_dat)[721:912]
+# 排除未分类的菌属（GGB）和菌种（SGB） #
+mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# 排除未分类的菌属（GGB）和菌种（SGB） #
+
+# 转换后的菌的名称
+mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+
+mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
+
+
+# 2010污染物 (连续)
+edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
+                "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP",
+                "BPA","BPS","BPF",
+                "TCC","TCS")
+edc_traits2 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS")
+edc_traits3 <- c("MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP")
+edc_traits3_q2 <- c("MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP") # 检出率>50%的PAE6
+edc_traits3_q4 <- c("MEHP","MECPP","MEHHP","MEP") # 检出率>75%的PAE4
+edc_traits4 <- c("BPA","BPS","BPF")
+edc_traits4_q2 <- c("BPA") # 检出率>50%的BP1
+edc_traits5 <- c("TCC","TCS")
+edc_traits6 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
+                 "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP",
+                 "BPA","TCC","TCS") # 检出率>50%
+edc_traits7 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
+                 "MEHP","MECPP","MEHHP","MEP") # 检出率>75%
+edc_traits8 <- c("MnBP","MCPP","MBzP",
+                 "BPS","BPF") # 检出率<50%
+
+edc_traits_log10 <- paste0(edc_traits,"_log10")
+edc_traits2_log10 <- paste0(edc_traits2,"_log10")
+edc_traits3_log10 <- paste0(edc_traits3,"_log10")
+edc_traits3_q2_log10 <- paste0(edc_traits3_q2,"_log10")
+edc_traits3_q4_log10 <- paste0(edc_traits3_q4,"_log10")
+edc_traits4_log10 <- paste0(edc_traits4,"_log10")
+edc_traits4_q2_log10 <- paste0(edc_traits4_q2,"_log10")
+edc_traits5_log10 <- paste0(edc_traits5,"_log10")
+edc_traits6_log10 <- paste0(edc_traits6,"_log10")
+edc_traits7_log10 <- paste0(edc_traits7,"_log10")
+edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
+
+# 2021、2014死亡和新发表型 (分类)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
+phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
+phy_censor_cat <- c("censorall_1021","censorall_1014")
+phy_censor_time <- c("timeall_1021","timeall_1014")
+# 2014、2010表型 (分类)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
+phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
+                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
+# 2014、2010表型 (连续)
+phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
+                     "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
+                     "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
+                     
+                     "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
+                     "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
+                     "wbc_f","wbc_b","crp_f",
+                     "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
+                     "nlr_f","lmr_f","plr_f","sii_f","siri_f")
+# 2014药物 (分类)
+# 十类药物 (使用人数>20, 包括Statins)
+med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
+               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
+               "med_lip1_f")
+# 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
+med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
+              "med_hbp1_f","med_hbp4_f", 
+              "med_lip1_f")
+#### 变量整理 ####
 
 #### 构建函数把species_name转换为可以作图的标准化名称 ----
 trans_mp4_s_names <- function(STRING){
@@ -35,13 +124,94 @@ trans_mp4_s_names <- function(STRING){
 #### 构建函数把species_name转换为可以作图的标准化名称 ####
 
 
-#### 读取 (JD HRB) Replication结果 ----
+#### 读取 (JD HRB ACVD) Replication结果 ----
 ## JD结果 ##
 {
-  results_jd <- 
-    results_jd <- 
+  ### 整理 mp4-out 分析结果 ###
+  {
+    #### 读取MP4-Outcomes COX & logistic分析结果 ----
+    cox_results <- readxl::read_xlsx("results/cox/cox_results_mp4_incident.xlsx")
+    cox_results <- cox_results[cox_results$adjust == "adj" & cox_results$outcome == "cvd_incident_1421",]
+    cox_results <- cox_results[,c(1,3:13)]
+    colnames(cox_results)[c(1:4)] <- c("estimate","se","z","p")
+    out_cox <- unique(cox_results$outcome) # 提取结局变量
+    exp_cox <- unique(cox_results$exposure) # 提取暴露变量
     
-  results_jd <- read.csv("results/replication/mp4_s_for_replication/disease_interation_related_mp4_species_20260728.csv")
+    logistic_results <- readxl::read_xlsx("results/glm/logistic_results_mp4_incident.xlsx")
+    logistic_results <- logistic_results[logistic_results$adjust == "adj" & logistic_results$outcome %in% c("ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"),]
+    logistic_results <- logistic_results[logistic_results$adjust == "adj",]
+    colnames(logistic_results)[c(1:4)] <- c("estimate","se","z","p")
+    out_logistic <- unique(logistic_results$outcome) # 提取结局变量
+    exp_logistic <- unique(logistic_results$exposure) # 提取暴露变量
+    
+    cox_logistic_results <- rbind(cox_results,logistic_results)
+    cox_logistic_results <- cox_logistic_results[cox_logistic_results$rowname %in% c(mp4_s_log10),]
+    # 以每个OUT表型为单位进行校正（以outcome为组，校正每个菌）
+    cox_logistic_results <- cox_logistic_results %>%
+      group_by(outcome) %>%  # 按outcome分组
+      mutate(p_adj_bh = p.adjust(p, method = "BH")) %>% # 对每个分组的P值进行FDR校正
+      ungroup()
+    cox_logistic_short <- cox_logistic_results[,c("rowname","outcome","estimate","se","p","p_adj_bh")]
+    colnames(cox_logistic_short) <- c("exp_name","out_name","estimate_cox_logistic","se_cox_logistic","p","p_adj_bh")
+    
+    cox_logistic_short$out_name <- factor(cox_logistic_short$out_name, levels = c("cvd_incident_1421","ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"))
+    cox_logistic_short <- cox_logistic_short %>%
+      arrange(exp_name,out_name)
+    
+    # effect size 转换为 HR/OR
+    cox_logistic_short$exp_estimate <- exp(cox_logistic_short$estimate_cox_logistic)
+    
+    # cox 和 logistic 显著的菌-Outcome pairs
+    pair_mp4_out_sig <- cox_logistic_short[cox_logistic_short$p < 0.05,] # (p显著)
+    unique(pair_mp4_out_sig$exp_name) # 127个菌
+    pair_mp4_cvd_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "cvd_incident_1421",] # 26个CVD显著相关的菌种
+    pair_mp4_cvd_sig <- pair_mp4_cvd_sig[,"exp_name"]
+    pair_mp4_cvd_sig$cvd_related <- 1
+    pair_mp4_ckd_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "ckd_incident_1014_no_self_report",] # 84个CKD显著相关的菌种
+    pair_mp4_ckd_sig <- pair_mp4_ckd_sig[,"exp_name"]
+    pair_mp4_ckd_sig$ckd_related <- 1
+    pair_mp4_dm_sig <- pair_mp4_out_sig[pair_mp4_out_sig$out_name == "dm_incident_1014_no_self_report",] # 35个DM显著相关的菌种
+    pair_mp4_dm_sig <- pair_mp4_dm_sig[,"exp_name"]
+    pair_mp4_dm_sig$dm_related <- 1
+    #### 读取MP4-Outcomes COX & logistic分析结果 ####
+    
+    
+    mp4_s <- data.frame(mp4_s_log10)
+    mp4_s_matched <- left_join(mp4_s, pair_mp4_dm_sig, by=c("mp4_s_log10" = "exp_name")) %>%
+      left_join(pair_mp4_ckd_sig, by=c("mp4_s_log10" = "exp_name")) %>%
+      left_join(pair_mp4_cvd_sig, by=c("mp4_s_log10" = "exp_name"))
+    # 保留第2到11列中，至少有一个不是NA的行
+    mp4_s_cleaned <- mp4_s_matched[rowSums(!is.na(mp4_s_matched[, 2:4])) > 0, ]
+    
+    
+    cox_logistic_short_dm_selected <- cox_logistic_short[cox_logistic_short$exp_name %in% mp4_s_cleaned$mp4_s_log10 & cox_logistic_short$out_name == "dm_incident_1014_no_self_report",]
+    colnames(cox_logistic_short_dm_selected) <- c("exp_name","out_name","estimate_dm","se_dm","p_dm","p_adj_bh_dm","hr/or_dm")
+    cox_logistic_short_dm_selected <- cox_logistic_short_dm_selected[,c("exp_name","estimate_dm","se_dm","p_dm")]
+    
+    cox_logistic_short_ckd_selected <- cox_logistic_short[cox_logistic_short$exp_name %in% mp4_s_cleaned$mp4_s_log10 & cox_logistic_short$out_name == "ckd_incident_1014_no_self_report",]
+    colnames(cox_logistic_short_ckd_selected) <- c("exp_name","out_name","estimate_ckd","se_ckd","p_ckd","p_adj_bh_ckd","hr/or_ckd")
+    cox_logistic_short_ckd_selected <- cox_logistic_short_ckd_selected[,c("exp_name","estimate_ckd","se_ckd","p_ckd")]
+    
+    cox_logistic_short_cvd_selected <- cox_logistic_short[cox_logistic_short$exp_name %in% mp4_s_cleaned$mp4_s_log10 & cox_logistic_short$out_name == "cvd_incident_1421",]
+    colnames(cox_logistic_short_cvd_selected) <- c("exp_name","out_name","estimate_cvd","se_cvd","p_cvd","p_adj_bh_cvd","hr/or_cvd")
+    cox_logistic_short_cvd_selected <- cox_logistic_short_cvd_selected[,c("exp_name","estimate_cvd","se_cvd","p_cvd")]
+    
+    
+    mp4_s_matched2 <- left_join(mp4_s, cox_logistic_short_dm_selected, by=c("mp4_s_log10" = "exp_name")) %>%
+      left_join(cox_logistic_short_ckd_selected, by=c("mp4_s_log10" = "exp_name")) %>%
+      left_join(cox_logistic_short_cvd_selected, by=c("mp4_s_log10" = "exp_name"))
+    # 保留第2到20列中，至少有一个不是NA的行
+    mp4_s_cleaned2 <- mp4_s_matched2[rowSums(!is.na(mp4_s_matched2[, 2:10])) > 0, ]
+    
+    mp4_s_cleaned2$mp4_s_log10 <- gsub("_log10","",mp4_s_cleaned2$mp4_s_log10)
+    colnames(mp4_s_cleaned2)[1] <- "species"
+    
+    mp4_s_for_rep <- mp4_s_cleaned2
+    row.names(mp4_s_for_rep) <- NULL
+    mp4_s_for_rep[is.na(mp4_s_for_rep)] <- 0
+  }
+  results_jd <- mp4_s_for_rep
+  ### 整理 mp4-out 分析结果 ###
   
   dm_jd <- results_jd[,c("species","estimate_dm","se_dm","p_dm")]
   colnames(dm_jd) <- c("species","estimate_dm_jd","se_dm_jd","p_dm_jd")
@@ -64,30 +234,17 @@ trans_mp4_s_names <- function(STRING){
 
 ## HEB结果 ##
 {
-  dm_hrb <- readxl::read_xlsx("results/replication/T2D_CKD_ASCVD_validation_com_20260726_n359.xlsx", sheet = "T2D")
-  dm_hrb <- dm_hrb[,c("...1","logit.coeff","logit.coeff.SE","logit.coeff.pval","logit.fdr")]
-  colnames(dm_hrb) <- c("species","estimate_dm_hrb","se_dm_hrb","p_dm_hrb","p_fdr_dm_hrb")
-  dm_hrb <- dm_hrb %>%
-    mutate(p_adj_bh_dm_hrb = p.adjust(p_dm_hrb, method = "BH"))
-  
-  ckd_hrb <- readxl::read_xlsx("results/replication/T2D_CKD_ASCVD_validation_com_20260726_n359.xlsx", sheet = "CKD")
-  ckd_hrb <- ckd_hrb[,c("...1","logit.coeff","logit.coeff.SE","logit.coeff.pval","logit.fdr")]
-  colnames(ckd_hrb) <- c("species","estimate_ckd_hrb","se_ckd_hrb","p_ckd_hrb","p_fdr_ckd_hrb")
-  ckd_hrb <- ckd_hrb %>%
-    mutate(p_adj_bh_ckd_hrb = p.adjust(p_ckd_hrb, method = "BH"))
+  dm_hrb <- readxl::read_xlsx("raw_data/validation_DM_n127.xlsx")
+  ckd_hrb <- readxl::read_xlsx("raw_data/validation_CKD_n127.xlsx")
 }
 
 ## JieZ ACVD结果 ##
 {
-  cvd_gd <- readxl::read_xlsx("results/replication/T2D_CKD_ASCVD_validation_com_20260726_n359.xlsx", sheet = "CVD") # 之前由分组变量设置了“Control”和“ASCVD”默认ASCVD作为ref，导致所有结果反向，已更正
-  cvd_gd <- cvd_gd[,c("...1","logit.coeff","logit.coeff.SE","logit.coeff.pval","logit.fdr")]
-  colnames(cvd_gd) <- c("species","estimate_cvd_gd","se_cvd_gd","p_cvd_gd","p_fdr_cvd_gd")
-  cvd_gd <- cvd_gd %>%
-    mutate(p_adj_bh_cvd_gd = p.adjust(p_cvd_gd, method = "BH"))
+  cvd_gd <- readxl::read_xlsx("raw_data/validation_ASCVD_n127.xlsx")
 }
-#### 读取 (JD HRB) Replication结果 ####
+#### 读取 (JD HRB ACVD) Replication结果 ####
 
-#### (JD HRB) Replication结果处理 ----
+#### (JD HRB ACVD) Replication结果处理 ----
 # DM结果处理 #
 {
   results_dm <- left_join(dm_jd, dm_hrb, by = "species") %>%
@@ -96,7 +253,6 @@ trans_mp4_s_names <- function(STRING){
     
   # 筛选JD和HRB方向一致的结果
   results_dm_same_direction <- results_dm[results_dm$estimate_dm_jd * results_dm$estimate_dm_hrb > 0,]
-  # results_dm_same_direction_hrb_sig <- results_dm_same_direction[results_dm_same_direction$p_dm_hrb < 0.05,]
   results_dm_same_direction_hrb_sig_fdr <- results_dm_same_direction[results_dm_same_direction$p_fdr_dm_hrb < 0.2,]
   
   results_dm_estimate <- results_dm[,c("species","estimate_dm_jd","estimate_dm_hrb")]
@@ -111,21 +267,21 @@ trans_mp4_s_names <- function(STRING){
   # 转换成long data
   results_dm_estimate_long <- results_dm_estimate %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "estimate"           # 新列，存放原列中的数值
+      cols = -species,                   
+      names_to = "study",              
+      values_to = "estimate"           
     )
   results_dm_se_long <- results_dm_se %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "se"           # 新列，存放原列中的数值
+      cols = -species,                   
+      names_to = "study",              
+      values_to = "se"          
     )
   results_dm_p_long <- results_dm_p %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "p"           # 新列，存放原列中的数值
+      cols = -species,                  
+      names_to = "study",              
+      values_to = "p"          
     )
   results_dm_long <- left_join(results_dm_estimate_long, results_dm_se_long, by=c("species","study")) %>%
     left_join(results_dm_p_long, by=c("species","study"))
@@ -139,7 +295,6 @@ trans_mp4_s_names <- function(STRING){
     
   # 筛选JD和HRB方向一致的结果
   results_ckd_same_direction <- results_ckd[results_ckd$estimate_ckd_jd * results_ckd$estimate_ckd_hrb > 0,]
-  # results_ckd_same_direction_hrb_sig <- results_ckd_same_direction[results_ckd_same_direction$p_ckd_hrb < 0.05,]
   results_ckd_same_direction_hrb_sig_fdr <- results_ckd_same_direction[results_ckd_same_direction$p_fdr_ckd_hrb < 0.2,]
   
   results_ckd_estimate <- results_ckd[,c("species","estimate_ckd_jd","estimate_ckd_hrb")]
@@ -153,21 +308,21 @@ trans_mp4_s_names <- function(STRING){
   # 转换成long data
   results_ckd_estimate_long <- results_ckd_estimate %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "estimate"           # 新列，存放原列中的数值
+      cols = -species,                   
+      names_to = "study",              
+      values_to = "estimate"           
     )
   results_ckd_se_long <- results_ckd_se %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "se"           # 新列，存放原列中的数值
+      cols = -species,                   
+      names_to = "study",              
+      values_to = "se"           
     )
   results_ckd_p_long <- results_ckd_p %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "p"           # 新列，存放原列中的数值
+      cols = -species,                   
+      names_to = "study",             
+      values_to = "p"           
     )
   results_ckd_long <- left_join(results_ckd_estimate_long, results_ckd_se_long, by=c("species","study")) %>%
     left_join(results_ckd_p_long, by=c("species","study"))
@@ -181,7 +336,6 @@ trans_mp4_s_names <- function(STRING){
     
   # 筛选JD和GD方向一致的结果
   results_acvd_same_direction <- results_acvd[results_acvd$estimate_cvd_jd * results_acvd$estimate_cvd_gd > 0,]
-  # results_acvd_same_direction_acvd_sig <- results_acvd_same_direction[results_acvd_same_direction$p_cvd_gd < 0.05,]
   results_acvd_same_direction_acvd_sig_fdr <- results_acvd_same_direction[results_acvd_same_direction$p_fdr_cvd_gd < 0.2,]
   
   results_acvd_estimate <- results_acvd[,c("species","estimate_cvd_jd","estimate_cvd_gd")]
@@ -195,26 +349,26 @@ trans_mp4_s_names <- function(STRING){
   # 转换成long data
   results_acvd_estimate_long <- results_acvd_estimate %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "estimate"           # 新列，存放原列中的数值
+      cols = -species,                  
+      names_to = "study",             
+      values_to = "estimate"          
     )
   results_acvd_se_long <- results_acvd_se %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "se"           # 新列，存放原列中的数值
+      cols = -species,                  
+      names_to = "study",             
+      values_to = "se"           
     )
   results_acvd_p_long <- results_acvd_p %>%
     pivot_longer(
-      cols = -species,                   # 保留xx列不动
-      names_to = "study",              # 新列，存放原列名（如“数学_期中”）
-      values_to = "p"           # 新列，存放原列中的数值
+      cols = -species,                  
+      names_to = "study",             
+      values_to = "p"          
     )
   results_acvd_long <- left_join(results_acvd_estimate_long, results_acvd_se_long, by=c("species","study")) %>%
     left_join(results_acvd_p_long, by=c("species","study"))
 }
-#### (JD HRB) Replication结果处理 ----
+#### (JD HRB ACVD) Replication结果处理 ----
 
 #### 保留验证队列方向一致的结果 ----
 # for fig 6a #
@@ -226,9 +380,9 @@ results_dm_same_direction_for_fig6a$species <- paste0(results_dm_same_direction_
 results_ckd_same_direction_for_fig6a$species <- paste0(results_ckd_same_direction_for_fig6a$species,"_log10")
 results_acvd_same_direction_for_fig6a$species <- paste0(results_acvd_same_direction_for_fig6a$species,"_log10")
 
-openxlsx::write.xlsx(results_dm_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_dm_20260728.xlsx")
-openxlsx::write.xlsx(results_ckd_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_ckd_20260728.xlsx")
-openxlsx::write.xlsx(results_acvd_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_acvd_20260728.xlsx")
+openxlsx::write.xlsx(results_dm_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_dm.xlsx")
+openxlsx::write.xlsx(results_ckd_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_ckd.xlsx")
+openxlsx::write.xlsx(results_acvd_same_direction_for_fig6a, "results/replication/replication_same_direction/replication_same_direction_acvd.xlsx")
 
 # 验证队列中方向一致且FDR-P<0.2的结果
 results_dm_same_direction_hrb_sig <- results_dm_same_direction_hrb_sig_fdr
@@ -239,9 +393,9 @@ results_dm_same_direction_hrb_sig$species <- paste0(results_dm_same_direction_hr
 results_ckd_same_direction_hrb_sig$species <- paste0(results_ckd_same_direction_hrb_sig$species,"_log10")
 results_acvd_same_direction_acvd_sig$species <- paste0(results_acvd_same_direction_acvd_sig$species,"_log10")
 
-openxlsx::write.xlsx(results_dm_same_direction_hrb_sig, "results/replication/replication_same_direction/replication_same_direction_sig_dm_20260728.xlsx")
-openxlsx::write.xlsx(results_ckd_same_direction_hrb_sig, "results/replication/replication_same_direction/replication_same_direction_sig_ckd_20260728.xlsx")
-openxlsx::write.xlsx(results_acvd_same_direction_acvd_sig, "results/replication/replication_same_direction/replication_same_direction_sig_acvd_20260728.xlsx")
+openxlsx::write.xlsx(results_dm_same_direction_hrb_sig, "results/replication/replication_same_direction/replication_same_direction_sig_dm.xlsx")
+openxlsx::write.xlsx(results_ckd_same_direction_hrb_sig, "results/replication/replication_same_direction/replication_same_direction_sig_ckd.xlsx")
+openxlsx::write.xlsx(results_acvd_same_direction_acvd_sig, "results/replication/replication_same_direction/replication_same_direction_sig_acvd.xlsx")
 #### 保留验证队列方向一致的结果 ####
 
 #### 作图Forest (JD HRB) ----
@@ -338,8 +492,6 @@ forest_function <- function(DAT, TITLE){
   
   dat_dm_for_forest$point_color <- ifelse(dat_dm_for_forest$study == "JD", "jd", "rep")
   dat_dm_for_forest$errorbar_color <- ifelse(dat_dm_for_forest$study == "JD", "jd", "rep")
-  
-  # dat_dm_for_forest$species <- ifelse(dat_dm_for_forest$species %in% gsub("_log10","",results_dm_same_direction_hrb_sig$species), paste0(dat_dm_for_forest$species,"*"), dat_dm_for_forest$species)
 }
 dat_dm_for_forest$species <- factor(dat_dm_for_forest$species, 
                                     levels = rev(unique(dat_dm_for_forest$species)), 
@@ -363,8 +515,6 @@ f1 <- forest_function(dat_dm_for_forest, "")
   
   dat_ckd_for_forest$point_color <- ifelse(dat_ckd_for_forest$study == "JD", "jd", "rep")
   dat_ckd_for_forest$errorbar_color <- ifelse(dat_ckd_for_forest$study == "JD", "jd", "rep")
-  
-  # dat_ckd_for_forest$species <- ifelse(dat_ckd_for_forest$species %in% gsub("_log10","",results_ckd_same_direction_hrb_sig$species), paste0(dat_ckd_for_forest$species,"*"), dat_ckd_for_forest$species)
 }
 dat_ckd_for_forest$species <- factor(dat_ckd_for_forest$species, 
                                      levels = rev(unique(dat_ckd_for_forest$species)),
@@ -381,8 +531,6 @@ f2 <- forest_function(dat_ckd_for_forest, "")
   
   dat_acvd_for_forest$point_color <- ifelse(dat_acvd_for_forest$study == "JD", "jd", "rep")
   dat_acvd_for_forest$errorbar_color <- ifelse(dat_acvd_for_forest$study == "JD", "jd", "rep")
-  
-  # dat_acvd_for_forest$species <- ifelse(dat_acvd_for_forest$species %in% gsub("_log10","",results_acvd_same_direction_acvd_sig$species), paste0(dat_acvd_for_forest$species,"*"), dat_acvd_for_forest$species)
 }
 dat_acvd_for_forest$species <- factor(dat_acvd_for_forest$species, 
                                     levels = rev(unique(dat_acvd_for_forest$species)), 
@@ -403,31 +551,9 @@ f <- cowplot::plot_grid(f1_2, f2, f3_2,
                         ncol = 3,
                         rel_widths = c(1, 1, 0.8))
 
-ggsave(paste0("C:/TWang/DLiu/EDC_Micro/figures/main_figures/forest_plot_replication_dm-ckd-cvd_20260728.pdf"),
+ggsave(paste0("figures/main_figures/(fig5bcd)_forest_plot_replication_dm-ckd-cvd.pdf"),
        f, width = 34, height = 20, limitsize = FALSE)
 #### 作图Forest (JD HRB) ####
-
-
-#### 补充信息 (不同疾病相关菌交集) ----
-results_dm_temp <- results_dm %>% select(species)
-results_ckd_temp <- results_ckd %>% select(species)
-results_acvd_temp <- results_acvd %>% select(species)
-
-dat_dm_ckd <- inner_join(results_dm_temp, results_ckd_temp, by="species")
-dat_dm_ckd$significant <- "Diabetes and CKD"
-dat_dm_acvd <- inner_join(results_dm_temp, results_acvd_temp, by="species")
-dat_dm_acvd$significant <- "Diabetes and CVD"
-dat_ckd_acvd <- inner_join(results_ckd_temp, results_acvd_temp, by="species")
-dat_ckd_acvd$significant <- "CKD and CVD"
-
-dat_dm_ckd_acvd <- inner_join(results_dm_temp, results_ckd_temp, by="species") %>%
-  inner_join(results_acvd_temp, by="species")
-
-dat_all <- rbind(dat_dm_ckd, dat_dm_acvd, dat_ckd_acvd) %>%
-  arrange(significant, species)
-dat_all <- dat_all[,c("species","significant")]
-# openxlsx::write.xlsx(dat_all, "C:/TWang/DLiu/EDC_Micro/figures/main_figures/fig4c_supp_information_20260617.xlsx")
-#### 补充信息 (不同疾病相关菌交集) ####
 
 
 #### 添加菌的门信息 (作图数据处理) ----
@@ -438,7 +564,7 @@ dat_all <- dat_all[,c("species","significant")]
   
   #### 读取clade name数据 ----
   ## 读取clade name ##
-  clade_name_mp4_s <- read.table("jiading/sourceDataTaxon/mpa4/JD.mp4.n4491_clade_name.txt", header = TRUE)
+  clade_name_mp4_s <- read.table("raw_data/JD.mp4.n4491_clade_name.txt", header = TRUE)
   clade_name_mp4_s$species <- trans_mp4_s_names(clade_name_mp4_s$species)
   clade_name_mp4_s <- clade_name_mp4_s[,c("phylum","species")]
   table(clade_name_mp4_s$species)
@@ -501,7 +627,7 @@ f_heatmap_phylum_dm <- ggplot(dat_dm_for_phy_heatmap, aes(x = species, y = y_axi
     axis.text.x = element_text(angle = 300, hjust = 0, size = 12, color = "black"), # 调整x轴文字
     axis.text.y = element_text(size = 13, color = "black") #调整y轴文字
   )
-ggsave(f_heatmap_phylum_dm, filename=paste0("figures/main_figures/forest_mp4_out_phylum_dm_20260728.pdf"), width = 14, height = 3.8, limitsize = FALSE)
+ggsave(f_heatmap_phylum_dm, filename=paste0("figures/main_figures/(fig5b)_forest_mp4_out_phylum_dm.pdf"), width = 14, height = 3.8, limitsize = FALSE)
 
 
 f_heatmap_phylum_ckd1 <- ggplot(dat_ckd_for_phy_heatmap, aes(x = species, y = y_axis)) +
@@ -531,7 +657,7 @@ f_heatmap_phylum_ckd1 <- ggplot(dat_ckd_for_phy_heatmap, aes(x = species, y = y_
     axis.text.x = element_text(angle = 300, hjust = 0, size = 12, color = "black"), # 调整x轴文字
     axis.text.y = element_text(size = 13, color = "black") #调整y轴文字
   )
-ggsave(f_heatmap_phylum_ckd1, filename=paste0("figures/main_figures/forest_mp4_out_phylum_ckd_20260728.pdf"), width = 14, height = 3.8, limitsize = FALSE)
+ggsave(f_heatmap_phylum_ckd1, filename=paste0("figures/main_figures/(fig5c)_forest_mp4_out_phylum_ckd.pdf"), width = 14, height = 3.8, limitsize = FALSE)
 
 
 f_heatmap_phylum_cvd <- ggplot(dat_acvd_for_phy_heatmap, aes(x = species, y = y_axis)) +
@@ -561,5 +687,5 @@ f_heatmap_phylum_cvd <- ggplot(dat_acvd_for_phy_heatmap, aes(x = species, y = y_
     axis.text.x = element_text(angle = 300, hjust = 0, size = 12, color = "black"), # 调整x轴文字
     axis.text.y = element_text(size = 13, color = "black") #调整y轴文字
   )
-ggsave(f_heatmap_phylum_cvd, filename=paste0("figures/main_figures/forest_mp4_out_phylum_cvd_20260728.pdf"), width = 14, height = 3.8, limitsize = FALSE)
+ggsave(f_heatmap_phylum_cvd, filename=paste0("figures/main_figures/(fig5d)_forest_mp4_out_phylum_cvd.pdf"), width = 14, height = 3.8, limitsize = FALSE)
 #### 添加菌的门信息 (作图数据处理) ####

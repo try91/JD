@@ -6,43 +6,47 @@ library(tidyr)
 library(survival)
 library(survminer)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
-#### 配色 ----
-PFAS_colors <- colorRampPalette(c("#f55d78","#FFFFFF"))(50)[c(1,8,15,22,29)]
-PAE_colors <- colorRampPalette(c("#3498db","#FFFFFF"))(50)[c(1,6,11,16,21,26,31,36,41)]
-BP_colors <- colorRampPalette(c("#f1c40f","#FFFFFF"))(50)[c(1,18,35)]
-TC_colors <- colorRampPalette(c("#00b894","#FFFFFF"))(50)[c(1,21)]
-my_colors <- c(PFAS_colors,PAE_colors,BP_colors,TC_colors)
+phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
-# 创建25色渐变色标尺
-my_palette <- colorRampPalette(colors = c("#cf6a87", "#f19066", "#f5cd79", "#2ecc71", "#33d9b2", "#34ace0", "#786fa6", "#34495e"))(8)
-# # 查看颜色梯度
-# scales::show_col(my_palette)
-#### 配色 ####
+phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
+  right_join(micro_dat, by = "ID")
+sample_name <- "phy_edc_temp0_3"
+
+### 分类协变量转换为因子 ###
+phy_edc_dat$sex_b_rev <- factor(phy_edc_dat$sex_b_rev) # 0/1（女/男）
+phy_edc_dat$smk1_b <- factor(phy_edc_dat$smk1_b)
+phy_edc_dat$smk1_f <- factor(phy_edc_dat$smk1_f)
+phy_edc_dat$drk1_b <- factor(phy_edc_dat$drk1_b)
+phy_edc_dat$drk1_f <- factor(phy_edc_dat$drk1_f)
+phy_edc_dat$high_edu_b <- factor(phy_edc_dat$high_edu_b)
+phy_edc_dat$paactive3_g_b <- factor(phy_edc_dat$paactive3_g_b)
+phy_edc_dat$paactive3_g_f <- factor(phy_edc_dat$paactive3_g_f)
+phy_edc_dat$high_fruveg <- factor(phy_edc_dat$high_fruveg) ### 把水果蔬菜变量转换为因子
+phy_edc_dat$med_all7 <- factor(phy_edc_dat$med_all7)
+### 分类协变量转换为因子 ###
+
 
 #### 变量整理 ----
 # 菌群2014菌群 (分类和连续)
 # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
+mp4_s_names <- colnames(micro_dat)[3:361]
+mp4_g_names <- colnames(micro_dat)[721:912]
 # 排除未分类的菌属（GGB）和菌种（SGB） #
 mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
 mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
 # 排除未分类的菌属（GGB）和菌种（SGB） #
 
 # 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
 mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
 mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
 mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
 mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
+
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -75,35 +79,34 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014或2021新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
                     "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
                      "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -111,60 +114,18 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
-#### 读取EDC INDEX数据 ----
-edc_count_b <- read.table("jiading/sourceDataEDCs/index/edc_count_2010_20260313.txt", header = TRUE)
-edc_score_b <- read.table("jiading/sourceDataEDCs/index/edc_score_2010_20260313.txt", header = TRUE)
-
-edc_count_f <- read.table("jiading/sourceDataEDCs/index/edc_count_2014_20260313.txt", header = TRUE)
-edc_score_f <- read.table("jiading/sourceDataEDCs/index/edc_score_2014_20260313.txt", header = TRUE)
-
-# EDC INDEX 变量名
-edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
-                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
-edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
-                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
-#### 读取EDC INDEX数据 ####
-
-#### 读取菌群人群数据 ----
-phy_edc_temp_list <- readRDS(paste0("jiading/data_for_analysis/phy_edc_subset.rds"))
-phy_edc_dat <- phy_edc_temp_list[["phy_edc_temp0_3"]] # 提取subgroup
-sample_name <- "phy_edc_temp0_3"  # 提取subgroup的名称
-
-phy_edc_dat <- left_join(phy_edc_dat,edc_count_f,by="ID") %>%
-  left_join(edc_score_f,by="ID") %>%
-  left_join(edc_count_b,by="ID") %>%
-  left_join(edc_score_b,by="ID")
-
-# 分类协变量转换为因子 #
-phy_edc_dat$sex_b_rev <- factor(phy_edc_dat$sex_b_rev) # 0/1（女/男）
-phy_edc_dat$smk1_b <- factor(phy_edc_dat$smk1_b)
-phy_edc_dat$smk1_f <- factor(phy_edc_dat$smk1_f)
-phy_edc_dat$drk1_b <- factor(phy_edc_dat$drk1_b)
-phy_edc_dat$drk1_f <- factor(phy_edc_dat$drk1_f)
-phy_edc_dat$high_edu_b <- factor(phy_edc_dat$high_edu_b)
-phy_edc_dat$paactive3_g_b <- factor(phy_edc_dat$paactive3_g_b)
-phy_edc_dat$paactive3_g_f <- factor(phy_edc_dat$paactive3_g_f)
-phy_edc_dat$high_fruveg <- factor(phy_edc_dat$high_fruveg) ### 把水果蔬菜变量转换为因子
-phy_edc_dat$med_all7 <- factor(phy_edc_dat$med_all7)
-#### 读取菌群人群数据 ####
 
 #### 读取+处理interaction分析结果 ----
 # "相乘交互作用"显著(Multiplicative scale P<0.05), 同时"相加交互作用"显著(以RERI显著为标准)的组
-results_interaction_sig1 <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig_20260728.xlsx")
+results_interaction_sig1 <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig.xlsx")
 # "相乘交互作用"显著的组(Multiplicative scale P<0.05)
-results_interaction_sig2 <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig_20260728.xlsx")
+results_interaction_sig2 <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig.xlsx")
 results_interaction_sig2 <- results_interaction_sig2[!results_interaction_sig2$keep_exp_med_out %in% results_interaction_sig1$keep_exp_med_out,] # 排除相乘和相加交互同时显著的结果
 # "相加交互作用"显著的组(以RERI显著为标准)
-results_interaction_sig3 <- readxl::read_xlsx("results/cox/interaction/add_interaction_sig_20260728.xlsx")
+results_interaction_sig3 <- readxl::read_xlsx("results/cox/interaction/add_interaction_sig.xlsx")
 results_interaction_sig3 <- results_interaction_sig3[!results_interaction_sig3$keep_exp_med_out %in% results_interaction_sig1$keep_exp_med_out,] # 排除相乘和相加交互同时显著的结果
 
 results_interaction_sig1 <- results_interaction_sig1[results_interaction_sig1$mediator %in% mp4_s_log10_short,]
@@ -251,32 +212,26 @@ select_exp_med <- select_exp_med[select_exp_med$exposure %in% c(edc_index_f_keep
 #### KM survival curve 数据处理 (CVD) ####
 
 #### Kaplan-Meier survival curve ----
-# 只做CVD的生存曲线图 (CKD, DM case过于聚集)
 select_exp_med <- select_exp_med[select_exp_med$OUTCOME == "CVD",]
 
 plot_list_cvd <- list()
 plot_number_at_risk_cvd <- list()
-# plot_list_ckd <- list()
-# plot_list_dm <- list()
 n_case_subgroup <- data.frame()
-for (i in 1:nrow(select_exp_med)) {
-  i <- 4
+for (i in 4) {
+  # i <- 4
   ## 分析样本选取 (由于各步骤间样本量要统一，因此在计算前首先选择各自的样本，排除结局缺失的项) ##
   if(select_exp_med$OUTCOME[i] == "CVD"){
     outcome <- "Incident CVD (2010-2021)"
-    cols <- c("cvd_incident_1021", "timecvd_1021", select_exp_med$exposure[i],select_exp_med$mediator[i],
-              "age_b","age_f","sex_b","smk1_b","smk1_f","drk1_b","drk1_f","high_edu_b","paactive3_g_b","paactive3_g_f","high_fruveg","med_all7")
+    cols <- c("cvd_incident_1021", "timecvd_1021", select_exp_med$exposure[i],select_exp_med$mediator[i])
   }else if(select_exp_med$OUTCOME[i] == "CKD"){
     outcome <- "Incident CKD (2010-2014)"
-    cols <- c("ckd_incident_1014", "timeckd_1014", select_exp_med$exposure[i],select_exp_med$mediator[i],
-              "age_b","age_f","sex_b","smk1_b","smk1_f","drk1_b","drk1_f","high_edu_b","paactive3_g_b","paactive3_g_f","high_fruveg","med_all7")
+    cols <- c("ckd_incident_1014", "timeckd_1014", select_exp_med$exposure[i],select_exp_med$mediator[i])
   }else{
     outcome <- "Incident DM (2010-2014)"
-    cols <- c("dm_incident_1014", "timedm_1014", select_exp_med$exposure[i],select_exp_med$mediator[i],
-              "age_b","age_f","sex_b","smk1_b","smk1_f","drk1_b","drk1_f","high_edu_b","paactive3_g_b","paactive3_g_f","high_fruveg","med_all7")
+    cols <- c("dm_incident_1014", "timedm_1014", select_exp_med$exposure[i],select_exp_med$mediator[i])
   }
   
-  phy_edc_dat_temp <- phy_edc_dat[,..cols]
+  phy_edc_dat_temp <- phy_edc_dat[,cols]
   phy_edc_dat_temp <- na.omit(phy_edc_dat_temp)
   colnames(phy_edc_dat_temp)[c(1,2,3,4)] <- c("CENSOR","TIME","EDC","MP4")
   
@@ -336,24 +291,22 @@ for (i in 1:nrow(select_exp_med)) {
                      xlab = paste0("Time in years"),   
                      ggtheme = theme_light(),
                      ncensor.plot.height = 0.5,
-                     # conf.int.style = "step",  
-                     # surv.median.line = "hv",
                      size = 0.4,             # 设置生存曲线的粗细
-                     censor.size = 2,        # 关键参数：调整删失点的大小
-                     censor.shape = "|"      # 可选：调整删失点的形状，竖线通常更醒目
+                     censor.size = 2,        # 调整删失点的大小
+                     censor.shape = "|"      # 调整删失点的形状，竖线通常更醒目
     )
     
     # # 单独提取Log-rank检验结果 #
-    # phy_edc_dat1 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","Low species abundance-Low EDC")]
+    # phy_edc_dat1 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","Low species abundance-Low EDC"),]
     # surv_diff1 <- survdiff(Surv(TIME,CENSOR) ~ group, data = phy_edc_dat1) # 黄绿色 vs. 绿色
     # 
-    # phy_edc_dat2 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("High species abundance-High EDC","High species abundance-Low EDC")]
+    # phy_edc_dat2 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("High species abundance-High EDC","High species abundance-Low EDC"),]
     # surv_diff2 <- survdiff(Surv(TIME,CENSOR) ~ group, data = phy_edc_dat2) # 深红 vs. 红色
     # 
-    # phy_edc_dat3 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","High species abundance-High EDC")]
+    # phy_edc_dat3 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","High species abundance-High EDC"),]
     # surv_diff3 <- survdiff(Surv(TIME,CENSOR) ~ group, data = phy_edc_dat3) # 黄绿色 vs.深红
     # 
-    # phy_edc_dat4 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","High species abundance-Low EDC")]
+    # phy_edc_dat4 <- phy_edc_dat_temp[phy_edc_dat_temp$group %in% c("Low species abundance-High EDC","High species abundance-Low EDC"),]
     # surv_diff4 <- survdiff(Surv(TIME,CENSOR) ~ group, data = phy_edc_dat4) # 黄绿色 vs.红色
     
         f1$plot <- f1$plot + 
@@ -365,7 +318,6 @@ for (i in 1:nrow(select_exp_med)) {
       
       theme_classic() +
       theme(
-        # plot.margin = margin(1, 1, 1, 1, "cm"),  # 四周各 1cm 边距
         panel.border = element_rect(color = "black", fill = NA, size = 0.6), # 面板区域边框
         axis.line = element_line(size = 0.4, color = "black"), # 统一调整坐标轴粗细
         
@@ -382,7 +334,6 @@ for (i in 1:nrow(select_exp_med)) {
         axis.text.x = element_text(size = 12, colour = "black"), # 调整x轴文字
         axis.text.y = element_text(size = 12, colour = "black"),
         
-        # legend.position = "bottom",
         legend.title = element_blank(),
         legend.text = element_text(size = 10, colour = "black", margin = margin(t = 1, r = 0, b = 1, l = 0, unit = "mm")), # 调整legend文本大小
         # 图例键大小
@@ -453,21 +404,17 @@ for (i in 1:nrow(select_exp_med)) {
   if(select_exp_med$OUTCOME[i] == "CVD"){
     plot_list_cvd[[paste0(select_exp_med$exposure[i], "|", select_exp_med$mediator[i], "|", outcome)]] <- f1
     plot_number_at_risk_cvd[[paste0(select_exp_med$exposure[i], "|", select_exp_med$mediator[i], "|", outcome)]] <- f2
-  }else if(select_exp_med$OUTCOME[i] == "CKD"){
-    plot_list_ckd[[paste0(select_exp_med$exposure[i], "|", select_exp_med$mediator[i], "|", outcome)]] <- f1
-  }else{
-    plot_list_dm[[paste0(select_exp_med$exposure[i], "|", select_exp_med$mediator[i], "|", outcome)]] <- f1
   }
 }
 
 
 combined_plot1 <- arrange_ggsurvplots(plot_list_cvd,
                                       print = FALSE,
-                                      ncol = 2, nrow = 2) # 指定排列的列数和行数
-ggsave(paste0("figures/main_figures/km_curve_cvd_20260702.pdf"),
-       combined_plot1, width = 14, height = 6, limitsize = FALSE)
+                                      ncol = 1, nrow = 1) # 指定排列的列数和行数
+ggsave(paste0("figures/main_figures/(fig6b)_km_curve_cvd.pdf"),
+       combined_plot1, width = 8, height = 4, limitsize = FALSE)
 
 
-ggsave(paste0("figures/main_figures/km_curve_cvd_number_at_risk_20260702.pdf"),
+ggsave(paste0("figures/main_figures/(fig6b)_km_curve_cvd_number_at_risk.pdf"),
        plot_number_at_risk_cvd[[1]], width = 7, height = 1.5, limitsize = FALSE)
 #### Kaplan-Meier survival curve ####

@@ -3,55 +3,37 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
 #### 配色 ----
-# PFAS_colors <- colorRampPalette(c("#f55d78","#FFFFFF"))(50)[c(1,8,15,22,29)]
-# PAE_colors <- colorRampPalette(c("#3498db","#FFFFFF"))(50)[c(1,6,11,16,21,26,31,36,41)]
-# BP_colors <- colorRampPalette(c("#f1c40f","#FFFFFF"))(50)[c(1,18,35)]
-# TC_colors <- colorRampPalette(c("#00b894","#FFFFFF"))(50)[c(1,21)]
-# my_colors <- c(PFAS_colors,PAE_colors,BP_colors,TC_colors)
-
-# 创建25色渐变色标尺
-# my_palette <- colorRampPalette(colors = c("#cf6a87", "#f19066", "#f5cd79", "#2ecc71", "#33d9b2", "#34ace0", "#786fa6", "#34495e"))(8)
-# my_palette <- colorRampPalette(colors = c("#cf6a87", "#f19066", "#f5cd79", "#2ecc71", "#34ace0"))(5)
 my_palette <- colorRampPalette(colors = c("#cf6a87", "#f19066", "#2ecc71", "#34ace0"))(4)
-
-# # 查看颜色梯度
-# scales::show_col(my_palette)
 #### 配色 ####
 
 #### 变量整理 ----
 # 菌群2014菌群 (分类和连续)
 # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
+mp4_s_names <- colnames(micro_dat)[3:361]
+mp4_g_names <- colnames(micro_dat)[721:912]
 # 排除未分类的菌属（GGB）和菌种（SGB） #
 mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
 mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
 # 排除未分类的菌属（GGB）和菌种（SGB） #
-mp3_s_names <- read.table("jiading/sourceDataTaxon/mpa3/species_names_mp3_10%.txt")
-mp3_s_names <- mp3_s_names[,1]
-mp3_g_names <- read.table("jiading/sourceDataTaxon/mpa3/genus_names_mp3_10%.txt")
-mp3_g_names <- mp3_g_names[,1]
+
 # 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
 mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
 mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
 mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
 mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
+
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                 "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP",
-                "TCC","TCS",
-                "BPA","BPS","BPF")
+                "BPA","BPS","BPF",
+                "TCC","TCS")
 edc_traits2 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS")
 edc_traits3 <- c("MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP","MnBP","MCPP","MBzP")
 edc_traits3_q2 <- c("MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP") # 检出率>50%的PAE6
@@ -61,7 +43,7 @@ edc_traits4_q2 <- c("BPA") # 检出率>50%的BP1
 edc_traits5 <- c("TCC","TCS")
 edc_traits6 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP",
-                 "TCC","TCS","BPA") # 检出率>50%
+                 "BPA","TCC","TCS") # 检出率>50%
 edc_traits7 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP") # 检出率>75%
 edc_traits8 <- c("MnBP","MCPP","MBzP",
@@ -78,44 +60,34 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
-                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b",
-                    
-                    # "smk1_f","drk1_f","paactive3_g_f",
-                    
-                    "sitduration_f","sitduration_b","sleeptg_f",
-                    "dm_treat_f","dm_treat_b","hpt_treat_f","hpt_treat_b","hpl_treat_f","hpl_treat_b",
-                    "diet_score_g_f","high_fruveg_f","low_ssb_f","low_meat_f","high_fish_f")
+                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
-                     "nlr_f","lmr_f","plr_f","sii_f","siri_f",
-                     
-                     "sleept_f","sittimet_f","sittimet_b","sum_met_f","sum_met_b", "sum_met_work_f","sum_met_work_b", "sum_met_all_f","sum_met_all_b",
-                     "alco_f","alco_b","diet_score_f")
+                     "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -123,18 +95,12 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
 #### 处理菌群数据 ----
 ## 读取clade name ##
-clade_name_mp4_s <- read.table("jiading/sourceDataTaxon/mpa4/JD.mp4.n4491_clade_name.txt", header = TRUE)
+clade_name_mp4_s <- read.table("raw_data/JD.mp4.n4491_clade_name.txt", header = TRUE)
 clade_name_mp4_g <- clade_name_mp4_s %>%
   distinct(kingdom, phylum, class, order, family, genus)
 
@@ -148,69 +114,27 @@ clade_name_mp4_g$var_sort <- as.numeric(row.names(clade_name_mp4_g))
 
 
 ## 读取所有赛选后门、纲、目、科信息 (丰度>0.0001检出率>10%) ##
-mp4_p_names <- read.table("jiading/sourceDataTaxon/mpa4/phylum_names_mp4_10%.txt")
+mp4_p_names <- read.table("raw_data/phylum_names_mp4_10%.txt")
 mp4_p_names <- mp4_p_names[,1]
-mp4_c_names <- read.table("jiading/sourceDataTaxon/mpa4/class_names_mp4_10%.txt")
+mp4_c_names <- read.table("raw_data/class_names_mp4_10%.txt")
 mp4_c_names <- mp4_c_names[,1]
-mp4_o_names <- read.table("jiading/sourceDataTaxon/mpa4/order_names_mp4_10%.txt")
+mp4_o_names <- read.table("raw_data/order_names_mp4_10%.txt")
 mp4_o_names <- mp4_o_names[,1]
-mp4_f_names <- read.table("jiading/sourceDataTaxon/mpa4/family_names_mp4_10%.txt")
+mp4_f_names <- read.table("raw_data/family_names_mp4_10%.txt")
 mp4_f_names <- mp4_f_names[,1]
-
-## 数据用所有种属 ##
-mp4_s <- read.table("jiading/sourceDataTaxon/mpa4/JD.mp4.n4491.clean.Species.txt",header = TRUE)
-
-# 统计各个菌种的中位数, 均值, 最大值, 最小值, 探测率
-stats_result_s <- data.frame()
-for (i in colnames(mp4_s)[1:3146]) {
-
-  dat <- mp4_s[,c("id14_15",i)]
-  colnames(dat)[2] <- "Var"
-  dat_d <- dat[dat$Var > 0,]
-
-  stats_result1 <- dat %>%
-    summarise(
-      min = min(Var, na.rm = TRUE),
-      max = max(Var, na.rm = TRUE)
-    )
-  stats_result2 <- dat_d %>%
-    summarise(
-      median = median(Var, na.rm = TRUE),
-      mean = mean(Var, na.rm = TRUE)
-    )
-  stats_result <- cbind(stats_result1,stats_result2)
-  stats_result$number_detected <- nrow(dat_d)
-  stats_result$detected_rate <- nrow(dat_d)/nrow(dat)
-  stats_result$species <- i
-
-  stats_result_s <- rbind(stats_result_s, stats_result)
-}
-
-# 转换成长数据，每一个物种不同人相同的相对丰度，只保留一个
-mp4_s_long <- mp4_s %>%
-  pivot_longer(
-    cols = -id14_15,                   # 保留xx列不动
-    names_to = "species",              # 新列，存放原列名（如“数学_期中”）
-    values_to = "abundance"            # 新列，存放原列中的数值
-  ) %>%
-  distinct(species,abundance) %>%
-  arrange(species, -abundance)
-
-# 只保留359物种
-mp4_s_long <- mp4_s_long[mp4_s_long$species %in% mp4_s_names,]
 #### 处理菌群数据 ####
 
 #### 处理菌群-outcome数据 ----
 ## 读取MP4-Outcomes COX & logistic分析结果 ##
-cox_results <- readxl::read_xlsx("results/cox/cox_results_mp4_incident_20260728.xlsx")
+cox_results <- readxl::read_xlsx("results/cox/cox_results_mp4_incident.xlsx")
 cox_results <- cox_results[cox_results$adjust == "adj" & cox_results$outcome == "cvd_incident_1421",]
 cox_results <- cox_results[,c(1,3:13)]
 colnames(cox_results)[c(1:4)] <- c("estimate","se","z","p")
 out_cox <- unique(cox_results$outcome) # 提取结局变量
 exp_cox <- unique(cox_results$exposure) # 提取暴露变量
 
-logistic_results <- readxl::read_xlsx("results/glm/logistic_results_mp4_incident_20260728.xlsx")
-logistic_results <- logistic_results[logistic_results$adjust == "adj" & logistic_results$outcome %in% c("ckd_incident_1014","dm_incident_1014_no_self_report"),]
+logistic_results <- readxl::read_xlsx("results/glm/logistic_results_mp4_incident.xlsx")
+logistic_results <- logistic_results[logistic_results$adjust == "adj" & logistic_results$outcome %in% c("ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"),]
 logistic_results <- logistic_results[logistic_results$adjust == "adj",]
 colnames(logistic_results)[c(1:4)] <- c("estimate","se","z","p")
 out_logistic <- unique(logistic_results$outcome) # 提取结局变量
@@ -226,7 +150,7 @@ cox_logistic_results <- cox_logistic_results %>%
 cox_logistic_short <- cox_logistic_results[,c("rowname","outcome","estimate","se","p","p_adj_bh")]
 colnames(cox_logistic_short) <- c("exp_name","out_name","estimate_cox_logistic","se_cox_logistic","p","p_adj_bh")
 
-cox_logistic_short$out_name <- factor(cox_logistic_short$out_name, levels = c("cvd_incident_1421","ckd_incident_1014","dm_incident_1014_no_self_report"))
+cox_logistic_short$out_name <- factor(cox_logistic_short$out_name, levels = c("cvd_incident_1421","ckd_incident_1014_no_self_report","dm_incident_1014_no_self_report"))
 cox_logistic_short <- cox_logistic_short %>%
   arrange(exp_name,out_name)
 
@@ -235,41 +159,27 @@ cox_logistic_short$exp_estimate <- exp(cox_logistic_short$estimate_cox_logistic)
 
 ## 分别提取三个结局结果 ##
 cox_logistic_short_cvd <- cox_logistic_short[cox_logistic_short$out_name == "cvd_incident_1421",]
-cox_logistic_short_ckd <- cox_logistic_short[cox_logistic_short$out_name == "ckd_incident_1014",]
+cox_logistic_short_ckd <- cox_logistic_short[cox_logistic_short$out_name == "ckd_incident_1014_no_self_report",]
 cox_logistic_short_dm <- cox_logistic_short[cox_logistic_short$out_name == "dm_incident_1014_no_self_report",]
 
 gm_sig_cvd <-unique(cox_logistic_short_cvd[cox_logistic_short_cvd$p < 0.05,]) # 26个CVD显著相关的菌种(新结果)
-gm_sig_ckd <-unique(cox_logistic_short_ckd[cox_logistic_short_ckd$p < 0.05,]) # 83个CKD显著相关的菌种(新结果)
+gm_sig_ckd <-unique(cox_logistic_short_ckd[cox_logistic_short_ckd$p < 0.05,]) # 84个CKD显著相关的菌种(新结果)
 gm_sig_dm <-unique(cox_logistic_short_dm[cox_logistic_short_dm$p < 0.05,]) # 35个DM显著相关的菌种(新结果)
-
-# # 读取之前的结果进行比较
-# previous_mp4_3_dis <- read.csv("results/replication/mp4_s_for_replication/disease_interation_related_mp4_species.csv")
-# previous_mp4_3_dis$species <- paste0(previous_mp4_3_dis$species,"_log10")
-# pre_dm <- previous_mp4_3_dis[previous_mp4_3_dis$p_dm < 0.05,] # 26个CVD显著相关的菌种(原先)
-# pre_ckd <- previous_mp4_3_dis[previous_mp4_3_dis$p_ckd < 0.05,] # 85个CKD显著相关的菌种(原先)
-# pre_cvd <- previous_mp4_3_dis[previous_mp4_3_dis$p_cvd < 0.05,] # 48个DM显著相关的菌种(原先)
-# 
-# test_dm_in_pre <- gm_sig_dm[!gm_sig_dm$exp_name %in% pre_dm$species,] # DM新结果和原本结果不同的数量 6
-# test_ckd_in_pre <- gm_sig_ckd[!gm_sig_ckd$exp_name %in% pre_ckd$species,] # CKD新结果和原本结果不同的数量 39
-# test_cvd_in_pre <- gm_sig_cvd[!gm_sig_cvd$exp_name %in% pre_cvd$species,] # CVD新结果和原本结果不同的数量 0
 #### 处理菌群-outcome数据 ####
 
 
 ############################################# 曼哈顿图 #############################################
 #### 筛选和结局相关的菌 ----
 # 每组数量如果小于等于100则全保留，如果大于100则保留前100以及剩余随机保留10%数值
-dat_3_outcome_gm <- cox_logistic_short[cox_logistic_short$out_name %in% c("dm_incident_1014_no_self_report","ckd_incident_1014","cvd_incident_1421"),]
+dat_3_outcome_gm <- cox_logistic_short[cox_logistic_short$out_name %in% c("dm_incident_1014_no_self_report","ckd_incident_1014_no_self_report","cvd_incident_1421"),]
 dat_3_outcome_gm$OUTCOME <- ifelse(dat_3_outcome_gm$out_name %in% c("cvd_incident_1421"), "CVD",
-                                   ifelse(dat_3_outcome_gm$out_name %in% c("ckd_incident_1014"), "CKD", "DM"))
+                                   ifelse(dat_3_outcome_gm$out_name %in% c("ckd_incident_1014_no_self_report"), "CKD", "DM"))
 dat_3_outcome_gm$exp_name <- gsub("_log10","",dat_3_outcome_gm$exp_name)
 dat_3_outcome_gm$p_trans <- -log10(dat_3_outcome_gm$p)
 
 # 匹配上每个species的排列序号，方便后期作图
 clade_name_mp4_s_sort <- clade_name_mp4_s[,c("species","var_sort")]
 dat_sort <- left_join(dat_3_outcome_gm, clade_name_mp4_s_sort, by=c("exp_name" = "species"))
-# 匹配上每个species的detected rate，方便后期作图
-mp4_s_detected_rate <-stats_result_s[,c("species","detected_rate")]
-dat_sort <- left_join(dat_sort, mp4_s_detected_rate, by=c("exp_name" = "species"))
 
 dat_sort <- dat_sort %>%
   arrange(var_sort)
@@ -280,13 +190,10 @@ dat_sort_uniq$sort_new <- as.numeric(row.names(dat_sort_uniq))
 
 # 匹配上每个species的排列序号，方便后期作图
 dat_sort <- inner_join(dat_3_outcome_gm, dat_sort_uniq, by="exp_name")
-# 匹配上每个species的detected rate，方便后期作图
-mp4_s_detected_rate <-stats_result_s[,c("species","detected_rate")]
-dat_sort <- left_join(dat_sort, mp4_s_detected_rate, by=c("exp_name" = "species"))
 #### 筛选和结局相关的菌 ####
 
 
-#### Stack plot (x轴sort 1:359，y轴 phylum:species) ----
+#### Stack plot (x轴sort 1:127，y轴 phylum:species) ----
 clade_name_mp4_s_for_plot <- inner_join(clade_name_mp4_s, dat_sort_uniq, by=c("species" = "exp_name"))
 clade_name_mp4_s_for_plot <- clade_name_mp4_s_for_plot[,c(1:7,10)]
 colnames(clade_name_mp4_s_for_plot)[8] <- "var_sort"
@@ -401,14 +308,6 @@ colnames(clade_name_mp4_s_for_plot)[8] <- "var_sort"
   clade_name_color_matche_all <- rbind(clade_name_color_p,clade_name_color_c,clade_name_color_o,
                                        clade_name_color_f,clade_name_color_g,clade_name_color_s)
 }
-
-# unique_k <- unique(clade_name_mp4_s_for_plot$kingdom) # 1:1
-# unique_p <- unique(clade_name_mp4_s_for_plot$phylum) # 1:4
-# unique_c <- unique(clade_name_mp4_s_for_plot$class) # 1:22
-# unique_o <- unique(clade_name_mp4_s_for_plot$order) # 1:27
-# unique_f <- unique(clade_name_mp4_s_for_plot$family) # 1:39
-# unique_g <- unique(clade_name_mp4_s_for_plot$genus) # 1:84
-# unique_s <- unique(clade_name_mp4_s_for_plot$species) # 1:127
 
 
 # 整合每个层级clade name中species的数量
@@ -536,21 +435,14 @@ stack_function <- function(DAT){
     theme(
       plot.margin = margin(10, 5, 5, 5), # t,r,b,l
       
-      # axis.ticks = element_line(size = 0.5, colour = "black"),# 调整 X 轴刻度线, 线宽(默认0.5)
-      # axis.ticks.length = unit(0.2, "cm"),  # 可选：调整刻度线长度(需配合 axis.ticks.length), 长度(默认0.2cm)
       axis.ticks = element_blank(), # 去掉刻度线
       panel.grid = element_blank(),  # 删去网格线
       
-      # axis.title.x = element_text(size = 30, colour = "black"),
-      # axis.title.y = element_text(size = 30, colour = "black"),
       axis.title = element_blank(),
       
-      # axis.text.x = element_text(size = 25, colour = "black"), # 调整x轴文字
       axis.text.x = element_blank(),
       axis.text.y = element_text(size = 15, colour = "black"),
       
-      # legend.text = element_text(size = 20, colour = "black"), # 调整legend文本大小
-      # legend.title = element_blank()
       legend.position = "none"
     ) +
     # 关键：expand 控制轴线与数据两端空白
@@ -560,8 +452,7 @@ stack_function <- function(DAT){
   return(f_temp)
 }
 f_stack <- stack_function(clade_name_for_stack_all_color)
-#### Stack plot (x轴sort 1:359，y轴 phylum:species) ####
-# ggsave(f_stack, filename="figures/main_figures/stack_clade_20260313.pdf", width = 20, height = 2, limitsize = FALSE)
+#### Stack plot (x轴sort 1:127，y轴 phylum:species) ####
 
 
 #### Manhattan plot (x轴菌种，y轴相对丰度) ----
@@ -689,8 +580,6 @@ manhattan_function <- function(DAT){
     
     labs(x = "Species", y = "-log10(p-value)") +
     
-    # ggtitle(TITLE) +
-    
     # 关键：expand 控制轴线与数据两端空白
     scale_x_continuous(
       breaks = unique(DAT$sort_new),  # 设置刻度位置为sort_new的值
@@ -717,8 +606,6 @@ manhattan_function <- function(DAT){
       axis.title.x = element_blank(),
       
       legend.position = "none",
-      # legend.position = "bottom",
-      # legend.text = element_text(size = 15),
       
       plot.title = element_blank()
     ) 
@@ -728,10 +615,8 @@ manhattan_function <- function(DAT){
 
 f_manhattan1 <- manhattan_function(dat_sort_for_plot)
 #### Manhattan plot (x轴菌种，y轴相对丰度) ####
-# ggsave(f_manhattan1, filename="figures/main_figures/manhattan_plot_p_20260313.pdf", width = 25, height = 10, limitsize = FALSE)
-
 
 f1 <- cowplot::plot_grid(f_manhattan1, f_stack, 
                          nrow = 2,
                          rel_heights = c(10, 1.8))
-ggsave(f1, filename="figures/main_figures/manhattan_heatmap_clade_20260729.pdf", width = 25, height = 12, limitsize = FALSE)
+ggsave(f1, filename="figures/main_figures/(fig5a)_manhattan_heatmap_clade.pdf", width = 25, height = 12, limitsize = FALSE)

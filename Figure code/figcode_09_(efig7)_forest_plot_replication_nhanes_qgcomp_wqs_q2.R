@@ -4,60 +4,36 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 # 提取 RdBu 的 11 种颜色
 rdbu_colors <- RColorBrewer::brewer.pal(11, "RdBu")
 # 提取 BrBG 的 11 种颜色
 brbg_colors <- RColorBrewer::brewer.pal(11, "BrBG")
-# brbg_colors <- colorRampPalette(colors = brbg_colors)(41) #内圈细分为41份 (1~0.5, 0, -0.5~-1)
 # 构建权重图颜色
-# weight_colors <- colorRampPalette(colors = c("#b33939","white","#227093"))(41) #内圈细分为41份 (1~0.5, 0, -0.5~-1)
-# weight_colors <- colorRampPalette(colors = c("#82589F","white","#BDC581"))(41) #内圈细分为41份 (1~0.5, 0, -0.5~-1)
 weight_colors <- colorRampPalette(colors = c("#82589F","white","#1289A7"))(41) #内圈细分为41份 (1~0.5, 0, -0.5~-1)
-# weight_colors <- colorRampPalette(colors = c("#ED8A29","white","#6B52B5"))(41) #内圈细分为41份 (1~0.5, 0, -0.5~-1)
-
-# # 查看颜色梯度
-# scales::show_col(brbg_colors)
-
 # 设置11种sector颜色
 sector_colors <- colorRampPalette(colors = c("#b71540", "#eb2f06", "#fa8231", "#fed330", "#26de81", "#45aaf2", "#cd84f1", "#7158e2"))(11)
 #### 配色 ####
 
 #### 变量整理 ----
-# 菌群2014菌群 (分类和连续)
-# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
-mp3_s_names <- read.table("jiading/sourceDataTaxon/mpa3/species_names_mp3_10%.txt")
-mp3_s_names <- mp3_s_names[,1]
-mp3_g_names <- read.table("jiading/sourceDataTaxon/mpa3/genus_names_mp3_10%.txt")
-mp3_g_names <- mp3_g_names[,1]
-# 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
-mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
+# # 菌群2014菌群 (分类和连续)
+# # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+# mp4_s_names <- colnames(micro_dat)[3:361]
+# mp4_g_names <- colnames(micro_dat)[721:912]
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+# mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# 
+# # 转换后的菌的名称
+# mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+# mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+# 
+# mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+# mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
-mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
-
-mp3_s_bin <- paste0(mp3_s_names,"_bin") # 菌群MP3出现与否的分类变量 (物种层面)
-mp3_s_log10 <- paste0(mp3_s_names,"_log10") # 菌群MP3丰度的log10转换 (物种层面)
-mp3_s_zero <- paste0(mp3_s_names,"_zero") # 菌群MP3填补0值丰度 (物种层面)
-
-mp3_g_bin <- paste0(mp3_g_names,"_bin") # 菌群MP3出现与否的分类变量 (属层面)
-mp3_g_log10 <- paste0(mp3_g_names,"_log10") # 菌群MP3丰度的log10转换 (属层面)
-mp3_g_zero <- paste0(mp3_g_names,"_zero") # 菌群MP3填补0值丰度 (属层面)
-# # mp3中用于构建ma的菌的名称
-# mp3_ma_names <- read.table("jiading/sourceDataTaxon/mpa3/species_names_mp3_ma.txt")
-# mp3_ma_names <- mp3_ma_names$V1
-# mp3_ma_names_log10 <- paste0(mp3_ma_names,"_log10")
-# # microbial age (MA)
-# # mean(phy_edc_dat$MA,na.rm = TRUE)
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -90,44 +66,34 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
+
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("cvd_f","ckd_f","dm_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
+phy_out_cat <- c("cvd_f","ckd_f","dm_f")
 phy_traits_cat <- c("cvd_b","ckd_b","dm_b","as_imt_f","as_imt_b","hpt_f","hpt_b","nafld_f","nafld_b",
-                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b",
-                    
-                    # "smk1_f","drk1_f","paactive3_g_f",
-                    
-                    "sitduration_f","sitduration_b","sleeptg_f",
-                    "dm_treat_f","dm_treat_b","hpt_treat_f","hpt_treat_b","hpl_treat_f","hpl_treat_b",
-                    "diet_score_g_f","high_fruveg_f","low_ssb_f","low_meat_f","high_fish_f")
+                    "ob_f","ob_b","abob_f","abob_b","dyslip_f","dyslip_b","hua_f","hua_b","ir_f","ir_b","mets_f","mets_b")
 # 2014、2010表型 (连续)
 phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
                      "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","acr_f","acr_b","ua_f","ua_b","bia_f","bia_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
                      "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
-                     # "dmduration_f", "dmduration_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
                      "wbc_f","wbc_b","crp_f",
                      "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
-                     "nlr_f","lmr_f","plr_f","sii_f","siri_f",
-                     
-                     "sleept_f","sittimet_f","sittimet_b","sum_met_f","sum_met_b",
-                     "alco_f","alco_b","diet_score_f")
+                     "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -135,13 +101,7 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
 
@@ -165,9 +125,9 @@ med_all <- c("med_all10","med_all7","med_all6")
     outcome_label <- c("Diabetes","CKD","CVD")
     
     # 读取数据 (总人群)
-    results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+    results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name1,")_NOsamplingweights.xlsx"))
     # 读取数据 (总人群)
-    results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+    results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name1,")_NOsamplingweights.xlsx"))
     
     results_qg <- rbind(results_qg_all1, results_qg_edc1) %>%
       filter(exp %in% exposure & out %in% outcome_final)
@@ -224,9 +184,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -258,8 +216,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     # CKD
@@ -273,9 +229,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -307,8 +261,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     # DM
@@ -322,9 +274,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -356,8 +306,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     ### 森林图
@@ -366,12 +314,6 @@ med_all <- c("med_all10","med_all7","med_all6")
     dat_weight <- dat_forest[dat_forest$exp == "EDCs (13)",]
     dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 9:21, na.rm=TRUE, factor_key=TRUE)
     dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-    # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-    # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-    
-    # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-    #   arrange(rev(out),-weight_abs)
-    # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
     
     dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
       arrange(rev(out),-weight_abs)
@@ -403,16 +345,6 @@ med_all <- c("med_all10","med_all7","med_all6")
         labs(
           title = " ",
           x = "Weight", y = "Outcomes") +
-        
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
         
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
@@ -454,16 +386,6 @@ med_all <- c("med_all10","med_all7","med_all6")
           title = " ",
           x = "Weight", y = "Outcomes") +
         
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
-        
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
           colours = rev(weight_colors),
@@ -504,16 +426,6 @@ med_all <- c("med_all10","med_all7","med_all6")
           title = " ",
           x = "Weight", y = "Outcomes") +
         
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
-        
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
           colours = rev(weight_colors),
@@ -547,7 +459,7 @@ med_all <- c("med_all10","med_all7","med_all6")
     #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ####
   }
   forest_plot_weight1_all <- cowplot::plot_grid(forest_plot_weight1[[1]])
-  ggsave(forest_plot_weight1_all, filename=paste0("figures/supplementary_figures/forest_qgcomp_nhanes_13edc_NOsamplingweights_20260612.pdf"), width = 9, height = 12, limitsize = FALSE)
+  ggsave(forest_plot_weight1_all, filename=paste0("figures/supplementary_figures/(efig7a)_forest_qgcomp_nhanes_13edc_NOsamplingweights.pdf"), width = 9, height = 12, limitsize = FALSE)
 }
 
 ### QGCOMP: nhanes_dat5 (PAE_6) (未纳入NHANES权重) ###
@@ -569,9 +481,9 @@ med_all <- c("med_all10","med_all7","med_all6")
     outcome_label <- c("Diabetes","CKD","CVD")
     
     # 读取数据 (总人群)
-    results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+    results_qg_all1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(",sample_name1,")_NOsamplingweights.xlsx"))
     # 读取数据 (总人群)
-    results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+    results_qg_edc1 <- readxl::read_xlsx(paste0("results/correlations/qgcomp/nhanes/qgcomp_results_(q2)_(edc+-)_(",sample_name1,")_NOsamplingweights.xlsx"))
     
     results_qg <- rbind(results_qg_all1, results_qg_edc1) %>%
       filter(exp %in% exposure & out %in% outcome_final)
@@ -628,9 +540,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -662,8 +572,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     # CKD
@@ -677,9 +585,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -711,8 +617,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     # DM
@@ -726,9 +630,7 @@ med_all <- c("med_all10","med_all7","med_all6")
                   position = position_dodge(width = 0.7)) +
         
         scale_x_continuous(
-          # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
           labels = function(x) sprintf("%.1f", exp(x))  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
-          # expand = c(0.1, 0.3)
         ) +
         
         scale_y_discrete(expand = c(0.1, 0.1)) +
@@ -760,8 +662,6 @@ med_all <- c("med_all10","med_all7","med_all6")
               axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
               axis.text.y = element_text(size = 14, colour = "black"),
               
-              # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-              # legend.title = element_text(size = 15, colour = "black"),
               legend.position = "none")
     }
     ### 森林图
@@ -770,12 +670,6 @@ med_all <- c("med_all10","med_all7","med_all6")
     dat_weight <- dat_forest[dat_forest$exp == "PAEs (6)",]
     dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 9:14, na.rm=TRUE, factor_key=TRUE)
     dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-    # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-    # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-    
-    # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-    #   arrange(rev(out),-weight_abs)
-    # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
     
     dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
       arrange(rev(out),-weight_abs)
@@ -807,16 +701,6 @@ med_all <- c("med_all10","med_all7","med_all6")
         labs(
           title = " ",
           x = "Weight", y = "Outcomes") +
-        
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
         
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
@@ -858,16 +742,6 @@ med_all <- c("med_all10","med_all7","med_all6")
           title = " ",
           x = "Weight", y = "Outcomes") +
         
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
-        
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
           colours = rev(weight_colors),
@@ -908,16 +782,6 @@ med_all <- c("med_all10","med_all7","med_all6")
           title = " ",
           x = "Weight", y = "Outcomes") +
         
-        # # 设置连续颜色渐变（绿-白-黄）
-        # scale_fill_gradient2(
-        #   low = "#72b043",      # -1 对应绿色
-        #   mid = "white",     # 0 对应白色
-        #   high = "#f8cc1b",      # 1 对应黄色
-        #   midpoint = 0,      # 中间点（默认是 0，可不写）
-        #   limits = c(-1, 1), # 确保颜色范围覆盖数据
-        #   name = "Weight"    # 图例标题
-        # ) +
-        
         scale_fill_gradientn(
           # colours = rev(brbg_colors[c(4:8)]),
           colours = rev(weight_colors),
@@ -951,7 +815,7 @@ med_all <- c("med_all10","med_all7","med_all6")
     #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ####
   }
   forest_plot_weight2_all <- cowplot::plot_grid(forest_plot_weight2[[1]])
-  ggsave(forest_plot_weight2_all, filename=paste0("figures/supplementary_figures/forest_qgcomp_nhanes_6pae_NOsamplingweights_20260612.pdf"), width = 9, height = 7, limitsize = FALSE)
+  ggsave(forest_plot_weight2_all, filename=paste0("figures/supplementary_figures/(efig7c)_forest_qgcomp_nhanes_6pae_NOsamplingweights.pdf"), width = 9, height = 7, limitsize = FALSE)
 }
 
 
@@ -962,7 +826,7 @@ for (i in c("nhanes_dat1_1114")) {
   # 设置人群名称
   sample_name1 <- i
   # 读取数据
-  results_wqs_bin <- readxl::read_xlsx(paste0("results/correlations/wqs/wqs_results_bin_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+  results_wqs_bin <- readxl::read_xlsx(paste0("results/correlations/wqs/wqs_results_bin_(",sample_name1,")_NOsamplingweights.xlsx"))
   
   #### 数据处理 (WQS results for circos heatmap & forest plot) ----
   ### 设置纳入图片的暴露和结局
@@ -1062,10 +926,10 @@ for (i in c("nhanes_dat1_1114")) {
       # 正向模型 #
       dat_forest <- dat_wqs_pos_for_plot
       dat_forest <- dat_forest[dat_forest$exp %in% c("EDCs (13)","PFAS (5)","PAEs (6)"),]
-      # forest_color <- c("#f1c40f", "#00b894", "#3498db", "#f55d78", "#476066")
+      
       forest_color <- c("#3498db", "#f55d78", "#476066")
       color_wqs_weight <- "#82589F"
-      export <- paste0("figures/supplementary_figures/forest_wqs_pos_weight_3_nhanes_(",sample_name1,")_NOsamplingweights_20260612.pdf")
+      export <- paste0("figures/supplementary_figures/(efig7b)_forest_wqs_pos_weight_3_nhanes_(",sample_name1,")_NOsamplingweights.pdf")
       
       ############################################# 森林图 (WQS) #############################################
       #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ----
@@ -1093,7 +957,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1128,8 +991,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # CKD
@@ -1143,7 +1004,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1178,8 +1038,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # DM
@@ -1193,7 +1051,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1228,8 +1085,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       ### 森林图
@@ -1238,12 +1093,6 @@ for (i in c("nhanes_dat1_1114")) {
       dat_weight <- dat_forest[dat_forest$exp == "EDCs (13)",]
       dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 13:25, na.rm=TRUE, factor_key=TRUE)
       dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-      
-      # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-      #   arrange(rev(out),-weight_abs)
-      # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
       
       dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
         arrange(rev(out),-weight_abs)
@@ -1284,12 +1133,6 @@ for (i in c("nhanes_dat1_1114")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -1333,12 +1176,6 @@ for (i in c("nhanes_dat1_1114")) {
             name = "Weight"    # 图例标题
           ) +
           
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
-          
           theme_classic() +
           theme(axis.title.y = element_blank(),
                 axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
@@ -1380,12 +1217,6 @@ for (i in c("nhanes_dat1_1114")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -1413,10 +1244,10 @@ for (i in c("nhanes_dat1_1114")) {
       # 负向模型 #
       dat_forest <- dat_wqs_neg_for_plot
       dat_forest <- dat_forest[dat_forest$exp %in% c("EDCs (13)","PFAS (5)","PAEs (6)"),]
-      # forest_color <- c("#f1c40f", "#00b894", "#3498db", "#f55d78", "#476066")
+      
       forest_color <- c("#3498db", "#f55d78", "#476066")
       color_wqs_weight <- "#1289A7"
-      export <- paste0("figures/supplementary_figures/forest_wqs_neg_weight_3_nhanes_(",sample_name1,")_NOsamplingweights_20260612.pdf")
+      export <- paste0("figures/supplementary_figures/(efig7b)_forest_wqs_neg_weight_3_nhanes_(",sample_name1,")_NOsamplingweights.pdf")
       
       ############################################# 森林图 (WQS) #############################################
       #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ----
@@ -1444,7 +1275,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1479,8 +1309,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # CKD
@@ -1494,7 +1322,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1529,8 +1356,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # DM
@@ -1544,7 +1369,6 @@ for (i in c("nhanes_dat1_1114")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1579,8 +1403,6 @@ for (i in c("nhanes_dat1_1114")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       ### 森林图
@@ -1589,12 +1411,6 @@ for (i in c("nhanes_dat1_1114")) {
       dat_weight <- dat_forest[dat_forest$exp == "EDCs (13)",]
       dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 13:25, na.rm=TRUE, factor_key=TRUE)
       dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-      
-      # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-      #   arrange(rev(out),-weight_abs)
-      # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
       
       dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
         arrange(rev(out),-weight_abs)
@@ -1635,12 +1451,6 @@ for (i in c("nhanes_dat1_1114")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -1684,12 +1494,6 @@ for (i in c("nhanes_dat1_1114")) {
             name = "Weight"    # 图例标题
           ) +
           
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
-          
           theme_classic() +
           theme(axis.title.y = element_blank(),
                 axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
@@ -1731,12 +1535,6 @@ for (i in c("nhanes_dat1_1114")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -1770,7 +1568,7 @@ for (i in c("nhanes_dat5_0318")) {
   # sample_name1 <- "nhanes_dat5_0318"
   sample_name1 <- i
   # 读取数据
-  results_wqs_bin <- readxl::read_xlsx(paste0("results/correlations/wqs/wqs_results_bin_(",sample_name1,")_NOsamplingweights_20260612.xlsx"))
+  results_wqs_bin <- readxl::read_xlsx(paste0("results/correlations/wqs/wqs_results_bin_(",sample_name1,")_NOsamplingweights.xlsx"))
   
   #### 数据处理 (WQS results for circos heatmap & forest plot) ----
   ### 设置纳入图片的暴露和结局
@@ -1786,21 +1584,6 @@ for (i in c("nhanes_dat5_0318")) {
   # 标准化名称
   outcome_label <- c("Diabetes","CKD","CVD")
   
-  # ## 构建有完整exposure和outcome的数据框 ##
-  # out_dat1 <- out_dat
-  # out_dat1$exposure <- exposure[1]
-  # out_dat2 <- out_dat
-  # out_dat2$exposure <- exposure[2]
-  # out_dat3 <- out_dat
-  # out_dat3$exposure <- exposure[3]
-  # out_dat4 <- out_dat
-  # out_dat4$exposure <- exposure[4]
-  # out_dat5 <- out_dat
-  # out_dat5$exposure <- exposure[5]
-  # dat_exp_out_all <- rbind(out_dat1,out_dat2,out_dat3,out_dat4,out_dat5)
-  # colnames(dat_exp_out_all) <- c("out", "exp")
-  # ## 构建有完整exposure和outcome的数据框 ##
-  
   
   results_wqs <- results_wqs_bin %>%
     filter(exp %in% exposure & out %in% outcome_final & cov == "wqs" & type == "Q2")
@@ -1808,13 +1591,11 @@ for (i in c("nhanes_dat5_0318")) {
   results_wqs_pos <- results_wqs[results_wqs$direction == "pos",] # 正向权重wqs分析结果
   unique(results_wqs_pos$exp) # 缺TC_1 BP_1
   unique(results_wqs_pos$out)
-  # results_wqs_pos <- left_join(dat_exp_out_all,results_wqs_pos,by=c("exp", "out"))
   results_wqs_pos$p <- ifelse(is.na(results_wqs_pos$p), 1, results_wqs_pos$p)
   
   results_wqs_neg <- results_wqs[results_wqs$direction == "neg",] # 负向权重wqs分析结果
   unique(results_wqs_neg$exp) # 缺TC_1 BP_1
   unique(results_wqs_neg$out)
-  # results_wqs_neg <- left_join(dat_exp_out_all,results_wqs_neg,by=c("exp", "out"))
   results_wqs_neg$p <- ifelse(is.na(results_wqs_neg$p), 1, results_wqs_neg$p)
   
   # FDR 校正
@@ -1869,10 +1650,10 @@ for (i in c("nhanes_dat5_0318")) {
       # 正向模型 #
       dat_forest <- dat_wqs_pos_for_plot
       dat_forest <- dat_forest[dat_forest$exp %in% c("PAEs (6)"),]
-      # forest_color <- c("#f1c40f", "#00b894", "#3498db", "#f55d78", "#476066")
+      
       forest_color <- c("#3498db")
       color_wqs_weight <- "#82589F"
-      export <- paste0("figures/supplementary_figures/forest_wqs_pos_weight_3_nhanes_(",sample_name1,")_NOsamplingweights_20260612.pdf")
+      export <- paste0("figures/supplementary_figures/(efig7d)_forest_wqs_pos_weight_3_nhanes_(",sample_name1,")_NOsamplingweights.pdf")
       
       ############################################# 森林图 (WQS) #############################################
       #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ----
@@ -1900,7 +1681,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1935,8 +1715,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # CKD
@@ -1950,7 +1728,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -1985,8 +1762,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # DM
@@ -2000,7 +1775,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -2035,8 +1809,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       ### 森林图
@@ -2045,12 +1817,6 @@ for (i in c("nhanes_dat5_0318")) {
       dat_weight <- dat_forest[dat_forest$exp == "PAEs (6)",]
       dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 13:18, na.rm=TRUE, factor_key=TRUE)
       dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-      
-      # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-      #   arrange(rev(out),-weight_abs)
-      # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
       
       dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
         arrange(rev(out),-weight_abs)
@@ -2091,12 +1857,6 @@ for (i in c("nhanes_dat5_0318")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -2140,12 +1900,6 @@ for (i in c("nhanes_dat5_0318")) {
             name = "Weight"    # 图例标题
           ) +
           
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
-          
           theme_classic() +
           theme(axis.title.y = element_blank(),
                 axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
@@ -2187,12 +1941,6 @@ for (i in c("nhanes_dat5_0318")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -2220,10 +1968,10 @@ for (i in c("nhanes_dat5_0318")) {
       # 负向模型 #
       dat_forest <- dat_wqs_neg_for_plot
       dat_forest <- dat_forest[dat_forest$exp %in% c("PAEs (6)"),]
-      # forest_color <- c("#f1c40f", "#00b894", "#3498db", "#f55d78", "#476066")
+      
       forest_color <- c("#3498db")
       color_wqs_weight <- "#1289A7"
-      export <- paste0("figures/supplementary_figures/forest_wqs_neg_weight_3_nhanes_(",sample_name1,")_NOsamplingweights_20260612.pdf")
+      export <- paste0("figures/supplementary_figures/(efig7d)_forest_wqs_neg_weight_3_nhanes_(",sample_name1,")_NOsamplingweights.pdf")
       
       ############################################# 森林图 (WQS) #############################################
       #### 森林图+权重图 (3 outcome ["dm","ckd","cvd"]) ----
@@ -2251,7 +1999,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -2286,8 +2033,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # CKD
@@ -2301,7 +2046,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -2336,8 +2080,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       # DM
@@ -2351,7 +2093,6 @@ for (i in c("nhanes_dat5_0318")) {
                     position = position_dodge(width = 0.7)) +
           
           scale_x_continuous(
-            # labels = function(x) round(exp(x), 1),  # 显示为 exp(x)，保留1位小数 (不保留小数点后最后一位的0)
             labels = function(x) sprintf("%.1f", exp(x)),  # 显示为 exp(x)，保留1位小数 (保留小数点后最后一位的0)
             expand = c(0.1, 0.3)
           ) +
@@ -2386,8 +2127,6 @@ for (i in c("nhanes_dat5_0318")) {
                 axis.text.x = element_text(size = 14, colour = "black"), # 调整x轴文字，字体加粗
                 axis.text.y = element_text(size = 14, colour = "black"),
                 
-                # legend.text = element_text(size = 12, colour = "black"),   # 调整legend文本大小
-                # legend.title = element_text(size = 15, colour = "black"),
                 legend.position = "none")
       }
       ### 森林图
@@ -2396,12 +2135,6 @@ for (i in c("nhanes_dat5_0318")) {
       dat_weight <- dat_forest[dat_forest$exp == "PAEs (6)",]
       dat_weight_long <- tidyr::gather(dat_weight, edc, weight, 13:18, na.rm=TRUE, factor_key=TRUE)
       dat_weight_long$weight_abs <- abs(dat_weight_long$weight)
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOS"] <- "n-PFOS"
-      # levels(dat_weight_long$edc)[levels(dat_weight_long$edc) == "PFOA"] <- "n-PFOA"
-      
-      # dat_weight_long1 <- dat_weight_long[dat_weight_long$out == "Incident CVD (2010-2014)",]%>%
-      #   arrange(rev(out),-weight_abs)
-      # dat_weight_long1$edc <- factor(dat_weight_long1$edc, levels = rev(dat_weight_long1$edc))
       
       dat_weight_long2 <- dat_weight_long[dat_weight_long$out == "CVD",]%>%
         arrange(rev(out),-weight_abs)
@@ -2442,12 +2175,6 @@ for (i in c("nhanes_dat5_0318")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
@@ -2491,12 +2218,6 @@ for (i in c("nhanes_dat5_0318")) {
             name = "Weight"    # 图例标题
           ) +
           
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
-          
           theme_classic() +
           theme(axis.title.y = element_blank(),
                 axis.title.x = element_text(size = 15, margin = margin(t = 5, r = 0, b = 0, l = 0)),
@@ -2538,12 +2259,6 @@ for (i in c("nhanes_dat5_0318")) {
             limits = c(0, max(dat_weight_long$weight)), # 确保颜色范围覆盖数据
             name = "Weight"    # 图例标题
           ) +
-          
-          # scale_fill_gradientn(
-          #   colours = color_wqs_weight,
-          #   limits = c(min(dat_weight_long$weight), max(dat_weight_long$weight)),
-          #   name = "Weight"
-          # ) +
           
           theme_classic() +
           theme(axis.title.y = element_blank(),
