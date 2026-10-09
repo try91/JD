@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(qgcomp) 
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 

@@ -2,11 +2,11 @@ library(data.table)
 library(dplyr)
 library(survival)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
-edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
-micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
 phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
   left_join(micro_dat, by = "ID")
@@ -557,7 +557,7 @@ for (i in c("phy_edc_temp")) { # 不同亚组
           logistic_results_edc_index_incident_temp$method <- "logistic"
           logistic_results_edc_index_incident_temp$adjust <- adj
           logistic_results_edc_index_incident_temp$sample <- sample
-          logistic_results_edc_index_incident_temp$n <- logistic_results_edc_index_incident_list_temp[["df.null"]]
+          logistic_results_edc_index_incident_temp$n <- logistic_results_edc_index_incident_list_temp[["df.null"]] + 1
           colnames(logistic_results_edc_index_incident_temp)[c(1,2,3,4)] <- c("coef","se.coef.","t or z","p")
           row.names(logistic_results_edc_index_incident_temp) <-NULL
           

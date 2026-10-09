@@ -4,7 +4,7 @@ library(chemometrics)
 library(vegan)
 library(pcaPP)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 变量整理 ----
 # # 菌群2014菌群 (分类和连续)

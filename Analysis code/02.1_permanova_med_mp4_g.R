@@ -4,7 +4,7 @@ library(chemometrics)
 library(vegan)
 library(pcaPP)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",

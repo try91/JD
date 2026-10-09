@@ -3,11 +3,11 @@ library(dplyr)
 library(survival)
 library(interactionR)
 
-setwd("your_file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
-edc_dat <- read.table("raw_data/analyte_measurements_dat_20261006.txt", header = TRUE)
-micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_profiles_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 # 菌群MP4填补0值丰度 #
 {
   # 菌群2014菌群 (分类和连续)
@@ -37,7 +37,6 @@ micro_dat <- read.table("raw_data/gut_microbial_composition_function_pathway_pro
 }
 # 菌群MP4填补0值丰度 #
 
-# phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID")
 phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
   right_join(micro_dat, by = "ID")
 sample_name <- "phy_edc_temp0_3"
