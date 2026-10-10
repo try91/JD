@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(survival)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
@@ -14,12 +14,9 @@ sample_name <- "phy_edc_temp0_3"  # 提取subgroup的名称
 
 # 分类协变量转换为因子 #
 phy_edc_dat$sex_b_rev <- factor(phy_edc_dat$sex_b_rev) # 0/1（女/男）
-# phy_edc_dat$smk1_b <- factor(phy_edc_dat$smk1_b)
 phy_edc_dat$smk1_f <- factor(phy_edc_dat$smk1_f)
-# phy_edc_dat$drk1_b <- factor(phy_edc_dat$drk1_b)
 phy_edc_dat$drk1_f <- factor(phy_edc_dat$drk1_f)
 phy_edc_dat$high_edu_b <- factor(phy_edc_dat$high_edu_b)
-# phy_edc_dat$paactive3_g_b <- factor(phy_edc_dat$paactive3_g_b)
 phy_edc_dat$paactive3_g_f <- factor(phy_edc_dat$paactive3_g_f)
 phy_edc_dat$high_fruveg <- factor(phy_edc_dat$high_fruveg) ### 把水果蔬菜变量转换为因子
 phy_edc_dat$med_all7 <- factor(phy_edc_dat$med_all7)

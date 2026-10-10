@@ -1,10 +1,9 @@
 library(data.table)
 library(dplyr)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
-
 
 #### 变量整理 ----
 # 菌群2014菌群 (分类和连续)
