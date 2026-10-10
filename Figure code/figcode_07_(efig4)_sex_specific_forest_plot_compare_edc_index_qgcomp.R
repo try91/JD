@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 PFAS_colors <- colorRampPalette(c("#f55d78","#FFFFFF"))(50)[c(1,8,15,22,29)]
@@ -10,7 +10,6 @@ PAE_colors <- colorRampPalette(c("#3498db","#FFFFFF"))(50)[c(1,6,11,16,21,26,31,
 BP_colors <- colorRampPalette(c("#f1c40f","#FFFFFF"))(50)[c(1,18,35)]
 TC_colors <- colorRampPalette(c("#00b894","#FFFFFF"))(50)[c(1,21)]
 my_colors <- c(PFAS_colors,PAE_colors,BP_colors,TC_colors)
-
 # 创建25色渐变色标尺
 my_palette <- colorRampPalette(colors = c("#cf6a87", "#f19066", "#f5cd79", "#33d9b2", "#63cdda", "#34ace0", "#786fa6"))(25)
 #### 配色 ####
@@ -101,6 +100,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_hbp1_f","med_hbp4_f", 
               "med_lip1_f")
 #### 变量整理 ####
+
 
 #### 结局变量名汇总 ----
 ## 结局 横断面研究结果

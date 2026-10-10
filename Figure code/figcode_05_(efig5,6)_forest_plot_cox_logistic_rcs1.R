@@ -6,7 +6,7 @@ library(ppcor)
 library(survival)
 library(rms)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)

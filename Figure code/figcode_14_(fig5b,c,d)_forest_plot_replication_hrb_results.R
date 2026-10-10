@@ -3,7 +3,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
@@ -94,6 +94,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_lip1_f")
 #### 变量整理 ####
 
+
 #### 构建函数把species_name转换为可以作图的标准化名称 ----
 trans_mp4_s_names <- function(STRING){
   
@@ -122,7 +123,6 @@ trans_mp4_s_names <- function(STRING){
   return(string_temp)
 }
 #### 构建函数把species_name转换为可以作图的标准化名称 ####
-
 
 #### 读取 (JD HRB ACVD) Replication结果 ----
 ## JD结果 ##

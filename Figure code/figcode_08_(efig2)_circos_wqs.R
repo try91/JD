@@ -4,7 +4,7 @@ library(ggplot2)
 library(circlize)
 library(ComplexHeatmap)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 #### 配色 ----
 # 提取 RdBu 的 11 种颜色
@@ -101,6 +101,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_hbp1_f","med_hbp4_f", 
               "med_lip1_f")
 #### 变量整理 ####
+
 
 #### 数据处理 (for circos heatmap & forest plot) ----
 ### 设置纳入图片的暴露和结局

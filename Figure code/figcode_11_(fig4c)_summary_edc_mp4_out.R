@@ -3,7 +3,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
@@ -103,6 +103,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_hbp1_f","med_hbp4_f", 
               "med_lip1_f")
 #### 变量整理 ####
+
 
 #### 筛选 EDC-菌 pairs ----
 ## 读取EDC-菌 Spearman分析结果 ##

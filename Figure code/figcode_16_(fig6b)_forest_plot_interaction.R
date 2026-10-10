@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ggplot2)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
 
@@ -93,6 +93,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_lip1_f")
 #### 变量整理 ####
 
+
 #### 构建函数把species_name转换为可以作图的标准化名称 ----
 trans_mp4_s_names <- function(STRING){
   
@@ -121,7 +122,6 @@ trans_mp4_s_names <- function(STRING){
   return(string_temp)
 }
 #### 构建函数把species_name转换为可以作图的标准化名称 ####
-
 
 #### 读取+处理interaction分析结果 ----
 # "相乘交互作用"显著(Multiplicative scale P<0.05), 同时"相加交互作用"显著(以RERI显著为标准)的组
