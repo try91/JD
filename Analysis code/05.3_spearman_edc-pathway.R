@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(ppcor)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
@@ -97,7 +97,6 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_hbp1_f","med_hbp4_f", 
               "med_lip1_f")
 #### 变量整理 ####
-
 
 #### 读取 Pathway变量名 ----
 # 丰度>0.0001, 出现率>10%的pathway

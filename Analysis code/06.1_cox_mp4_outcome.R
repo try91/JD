@@ -2,7 +2,7 @@ library(data.table)
 library(dplyr)
 library(survival)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
@@ -97,6 +97,7 @@ med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
               "med_hbp1_f","med_hbp4_f", 
               "med_lip1_f")
 #### 变量整理 ####
+
 
 #### COX MP4与incidence CVD (2014~2021), CKD (2010~2014), DM (2010~2014) 关系 ----
 ### 构建分析MP4 log10与新发病的cox模型 (不校正) ###

@@ -3,7 +3,7 @@ library(dplyr)
 library(ppcor)
 library(effsize)
 
-setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+setwd("file_path") # File path includes "raw_data", "results", "figures", and "tables" folders
 
 phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
 phenotype_dat$age_g_b <- ifelse(phenotype_dat$age_b < 60, 0, 1)
