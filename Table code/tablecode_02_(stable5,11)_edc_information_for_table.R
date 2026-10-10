@@ -2,38 +2,34 @@ library(data.table)
 library(dplyr)
 library(tidyr)
 library(survey)
-### EDC log10转换 ###
-### 使用 MPA4 和 MPA3 (genus 和 species) ###
 
-setwd("C:/TWang/DLiu/EDC_Micro/") # Windows路径
+setwd("C:/TWang/DLiu/EDC_Micro/submission") # File path includes "raw_data", "results", "figures", and "tables" folders
+
+phenotype_dat <- read.table("raw_data/clinical_phenotypes_dat_20261006.txt", header = TRUE)
+edc_dat <- read.table("raw_data/EDC_analytes_dat_20261006.txt", header = TRUE)
+micro_dat <- read.table("raw_data/microbial_composition_pathway_dat_20261006.txt", header = TRUE)
+
+phy_edc_dat <- left_join(phenotype_dat, edc_dat, by = "ID") %>%
+  left_join(micro_dat, by = "ID")
+
 
 #### 变量整理 ----
-# 菌群2014菌群 (分类和连续)
-# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- read.table("jiading/sourceDataTaxon/mpa4/species_names_mp4_10%.txt")
-mp4_s_names <- mp4_s_names[,1]
-mp4_g_names <- read.table("jiading/sourceDataTaxon/mpa4/genus_names_mp4_10%.txt")
-mp4_g_names <- mp4_g_names[,1]
-mp3_s_names <- read.table("jiading/sourceDataTaxon/mpa3/species_names_mp3_10%.txt")
-mp3_s_names <- mp3_s_names[,1]
-mp3_g_names <- read.table("jiading/sourceDataTaxon/mpa3/genus_names_mp3_10%.txt")
-mp3_g_names <- mp3_g_names[,1]
-# 转换后的菌的名称
-mp4_s_bin <- paste0(mp4_s_names,"_bin") # 菌群MP4出现与否的分类变量 (物种层面)
-mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
-mp4_s_zero <- paste0(mp4_s_names,"_zero") # 菌群MP4填补0值丰度 (物种层面)
+# # 菌群2014菌群 (分类和连续)
+# # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+# mp4_s_names <- colnames(micro_dat)[3:361]
+# mp4_g_names <- colnames(micro_dat)[721:912]
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+# mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# 
+# # 转换后的菌的名称
+# mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+# mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+# 
+# mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+# mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
 
-mp4_g_bin <- paste0(mp4_g_names,"_bin") # 菌群MP4出现与否的分类变量 (属层面)
-mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
-mp4_g_zero <- paste0(mp4_g_names,"_zero") # 菌群MP4填补0值丰度 (属层面)
-
-mp3_s_bin <- paste0(mp3_s_names,"_bin") # 菌群MP3出现与否的分类变量 (物种层面)
-mp3_s_log10 <- paste0(mp3_s_names,"_log10") # 菌群MP3丰度的log10转换 (物种层面)
-mp3_s_zero <- paste0(mp3_s_names,"_zero") # 菌群MP3填补0值丰度 (物种层面)
-
-mp3_g_bin <- paste0(mp3_g_names,"_bin") # 菌群MP3出现与否的分类变量 (属层面)
-mp3_g_log10 <- paste0(mp3_g_names,"_log10") # 菌群MP3丰度的log10转换 (属层面)
-mp3_g_zero <- paste0(mp3_g_names,"_zero") # 菌群MP3填补0值丰度 (属层面)
 
 # 2010污染物 (连续)
 edc_traits <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -49,7 +45,7 @@ edc_traits4_q2 <- c("BPA") # 检出率>50%的BP1
 edc_traits5 <- c("TCC","TCS")
 edc_traits6 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP","MEOHP","MiBP",
-                 "BPA","TCC","TCS") # 检出率>50%
+                 "TCC","TCS","BPA") # 检出率>50%
 edc_traits7 <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
                  "MEHP","MECPP","MEHHP","MEP") # 检出率>75%
 edc_traits8 <- c("MnBP","MCPP","MBzP",
@@ -66,39 +62,35 @@ edc_traits5_log10 <- paste0(edc_traits5,"_log10")
 edc_traits6_log10 <- paste0(edc_traits6,"_log10")
 edc_traits7_log10 <- paste0(edc_traits7,"_log10")
 edc_traits8_log10 <- paste0(edc_traits8,"_log10")
+# EDC INDEX 变量名
+edc_index_b_keep <- c("edc_count2_edc14_b","edc_count2_pfas_b","edc_count2_pae6_b","edc_count2_bp1_b","edc_count2_tc_b",
+                      "edc_score_edc14_b","edc_score_pfas_b","edc_score_pae6_b","edc_score_bp1_b","edc_score_tc_b")
+edc_index_f_keep <- c("edc_count2_edc14_f","edc_count2_pfas_f","edc_count2_pae6_f","edc_count2_bp1_f","edc_count2_tc_f",
+                      "edc_score_edc14_f","edc_score_pfas_f","edc_score_pae6_f","edc_score_bp1_f","edc_score_tc_f")
 
 
 # 2021、2014死亡和新发表型 (分类)
-phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")    # 新发 cvd, ckd, dm 去除基线 case (只做EDC对outcome，不做cvd_incident_1421)
+phy_incident_cat <- c("cvd_incident_1021","cvd_incident_1014","ckd_incident_1014","dm_incident_1014")
 phy_incident_time <- c("timecvd_1021","timecvd_1014","timeckd_1014","timedm_1014")
 phy_censor_cat <- c("censorall_1021","censorall_1014")
 phy_censor_time <- c("timeall_1021","timeall_1014")
 # 2014、2010表型 (分类)
-phy_out_cat <- c("dm_f","ckd_f","cvd_f") # cvd, ckd, dm 包括基线 case (2010基线case+2014新发case，横断面数据)
-phy_traits_cat <- c("dm_f","dm_b","ckd_f","ckd_b","cvd_f","cvd_b",
+phy_out_cat <- c("dm_f","ckd_f","cvd_f")
+phy_traits_cat <- c("dm_f","ckd_f","cvd_f","dm_b","ckd_b","cvd_b",
                     "ob_f","ob_b","abob_f","abob_b","ir_f","ir_b","dyslip_f","dyslip_b",
                     "mets_f","mets_b","nafld_f","nafld_b","hua_f","hua_b","hpt_f","hpt_b","as_imt_f","as_imt_b")
-
 # 2014、2010表型 (连续)
-phy_traits_cont <- c("bmi_f","bmi_b","height_f","height_b","weight_f","weight_b","whr_f","whr_b","wc_f","wc_b","hc_f","hc_b",
-                     "tg_f","tg_b","ldl_f","ldl_b","hdl_f","hdl_b","chol_f","chol_b","apoa_f","apoa_b","apob_f","apob_b","nonhdl_f","nonhdl_b",
-                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","bia_f","bia_b",
-                     "egfr_f","egfr_b","acr_f","acr_b","scr_f","scr_b","ua_f","ua_b",
-                     "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b",
-                     "ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
+phy_traits_cont <- c("bmi_f","bmi_b","wc_f","wc_b","hc_f","hc_b","whr_f","whr_b","height_f","height_b","weight_f","weight_b",
+                     "hdl_f","hdl_b","ldl_f","ldl_b","apoa_f","apoa_b","apob_f","apob_b","chol_f","chol_b","tg_f","tg_b","nonhdl_f","nonhdl_b",
+                     "alt_f","alt_b","ast_f","ast_b","ggt_f","ggt_b","scr_f","scr_b","egfr_f","egfr_b","ua_f","ua_b","bia_f","bia_b",
+                     "glu0_f","glu0_b","glu120_f","glu120_b","vhba1c_f","vhba1c_b","ins0_f","ins0_b","ins120_f","ins120_b","homair_f","homair_b","homab_f","homab_b",
+                     
                      "sbp_f","sbp_b","dbp_f","dbp_b","pr_f","pr_b",
                      "ft3_f","ft4_f","tsh_f","tpoab_f","tgab_f",
-                     "hgb_f","hgb_b","plt_f","plt_b","eos_f","lym_f","mon_f","neu_f",
-                     "nlr_f","lmr_f","plr_f","sii_f","siri_f","wbc_f","wbc_b","crp_f")
-                     
+                     "wbc_f","wbc_b","crp_f",
+                     "plt_f","plt_b","hgb_f","hgb_b","eos_f","lym_f","mon_f","neu_f",
+                     "nlr_f","lmr_f","plr_f","sii_f","siri_f")
 # 2014药物 (分类)
-# 二十类(所有)药物
-med_cat20 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f","med_dm5_f","med_dm6_f","med_dm7_f",
-               "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
-               "med_lip1_f","med_lip2_f","med_lip3_f",
-               "med_ua1_f","med_ua2_f",
-               "med_thy1_f","med_thy2_f",
-               "med_oth_f")
 # 十类药物 (使用人数>20, 包括Statins)
 med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
                "med_hbp1_f","med_hbp2_f","med_hbp3_6_f","med_hbp4_f","med_hbp5_f",
@@ -106,19 +98,10 @@ med_cat10 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f",
 # 六类与菌群显著相关药物 (Sulfonylureas, Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP4数据)
 med_cat7 <- c("med_dm1_f","med_dm2_f","med_dm3_f","med_dm4_f", 
               "med_hbp1_f","med_hbp4_f", 
-              "med_lip1_f") 
-# 五类与菌群显著相关药物 (Biguanides, Thiazolidinediones, AGIs, ARBs, Calcium antagonists) + Statins (MP3数据)
-med_cat6 <- c("med_dm2_f","med_dm3_f","med_dm4_f",
-              "med_hbp1_f","med_hbp4_f",
               "med_lip1_f")
-# 汇总的所有10类、7类和6类药物
-med_all <- c("med_all10","med_all7","med_all6")
 #### 变量整理 ####
 
 
-# 读取嘉定人群信息
-phy_edc_temp_list <- readRDS(paste0("jiading/data_for_analysis/phy_edc_subset.rds"))
-phy_edc_dat <- phy_edc_temp_list[["phy_edc_temp"]] # 提取subgroup
 #### JD_2010 EDC 信息 ----
 # 检测下限 #
 jd_edc_low_limit_ngmL <- c(PFOA = 1, PFNA = 1, PFDA = 0.5, PFOS = 1, PFHxS = 0.2, 
@@ -166,12 +149,12 @@ dat_jd_edc_for_stable <- dat_jd_edc_for_stable %>%
 
 colnames(dat_jd_edc_for_stable) <- c("EDCs or metabolites","Limit of quantification","Detection rate","Median (quartile 1-quartile 3)")
  
-openxlsx::write.xlsx(dat_jd_edc_for_stable,"tables/edc_information_jd_20260507.xlsx")
+openxlsx::write.xlsx(dat_jd_edc_for_stable,"tables/(stable05)_edc_information_jd.xlsx")
 #### JD_2010 EDC 信息 ####
 
-
+#### NHANES EDC 信息 ----
 # 读取NHANES信息
-nhanes_dat <- read.csv("C:/TWang/DLiu/NHANES/nhanes_dat_2003-2018_for_analysis.csv")
+nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 # 13 EDCs (PFAS_5, PAEs_6, TC_1, BP_1); 2011-2014 (2c) #
 {
   cols_edc <- c("PFOS","PFOA","PFNA","PFDA","PFHxS",
@@ -192,7 +175,7 @@ nhanes_dat <- read.csv("C:/TWang/DLiu/NHANES/nhanes_dat_2003-2018_for_analysis.c
   nhanes_dat5 <- nhanes_dat[complete.cases(nhanes_dat[, cols_edc]),]
   table(nhanes_dat5$release)
 }
-#### NHANES EDC 信息 ----
+
 # 检测下限 #
 nhanes_edc_low_limit_ngmL <- c(PFOA = 0.1, PFNA = 0.1, PFDA = 0.1, PFOS = 0.1, PFHxS = 0.1, 
                                MEHP = 0.8, MEHHP = 0.4, MEOHP = 0.2, MECPP = 0.4, MnBP = 0.4, MEP = 1.2, MBzP = 0.3, MCPP = 0.4, MiBP = 0.8,
@@ -277,5 +260,5 @@ dat_nhanes_edc_for_stable <- dat_nhanes_edc_for_stable %>%
 
 colnames(dat_nhanes_edc_for_stable) <- c("EDCs or metabolites","Number of participants","Limit of quantification","Detection rate","Median (quartile 1-quartile 3)","Sample type","NHANES survey cycle")
 
-openxlsx::write.xlsx(dat_nhanes_edc_for_stable,"tables/edc_information_nhanes_20260507.xlsx")
+openxlsx::write.xlsx(dat_nhanes_edc_for_stable,"tables/(stable11)_edc_information_nhanes.xlsx")
 #### NHANES EDC 信息 ####

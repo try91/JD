@@ -124,25 +124,32 @@ trans_mp4_s_names <- function(STRING){
 }
 #### 构建函数把species_name转换为可以作图的标准化名称 ####
 
-#### 读取interaction sensitivity analysis分析结果 ----
+#### 读取interaction分析结果 ----
 # 根据外来物质有害理论，我们只保留EDC高对于结局有危害效应的结果 #
-results_all <- readxl::read_xlsx("results/cox/interaction/cox_results_edc_mp4_interaction_sensitivity.xlsx")
-unique(results_all$mediator)
-# 挑选暴露结局变量
-# EDC group: 0为低EDC浓度组，1为高EDC浓度组 #
-# MP4 group: 0为低菌群丰度组，1为中菌群丰度组，2为高菌群丰度组 #
-results_short <- results_all[results_all$rowname %in% c("edc_group1",
-                                                        "mp4_group1","mp4_group2",
-                                                        "edc_group1:mp4_group1","edc_group1:mp4_group2") &
-                               results_all$mediator %in% c(mp4_s_log10),]
-results_short <- results_short[(results_short$rowname %in% c("edc_group1") & results_short$group != "interaction") | 
-                                 results_short$rowname %in% c("edc_group1:mp4_group1","edc_group1:mp4_group2"),]
-results_short$OUTCOME <- ifelse(results_short$outcome %in% c("cvd_incident_1021","cvd_incident_1421"), "CVD",
-                                ifelse(results_short$outcome %in% c("ckd_incident_1014"), "CKD", "DM"))
+results_both_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/both_interaction_sig.xlsx")
+unique_both_interaction <- unique(results_both_interaction_sig_keep$keep_exp_med_out)
+results_multiplicative_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/multi_interaction_sig.xlsx")
+unique_multiplicative_interaction <- unique(results_multiplicative_interaction_sig_keep$keep_exp_med_out)
+results_additive_interaction_sig_keep <- readxl::read_xlsx("results/cox/interaction/add_interaction_sig.xlsx")
+unique_additive_interaction <- unique(results_additive_interaction_sig_keep$keep_exp_med_out)
 
-results_short$keep_exp_med_out <- paste0(results_short$exposure,"|",results_short$mediator,"|",results_short$outcome)
-all_results_interaction <- results_short
-#### 读取interaction sensitivity analysis分析结果 ####
+
+results_multiplicative_interaction_sig_keep_only <- results_multiplicative_interaction_sig_keep[!results_multiplicative_interaction_sig_keep$keep_exp_med_out %in% unique_both_interaction,]
+unique_multiplicative_interaction <- unique(results_multiplicative_interaction_sig_keep_only$keep_exp_med_out)
+results_additive_interaction_sig_keep_only <- results_additive_interaction_sig_keep[!results_additive_interaction_sig_keep$keep_exp_med_out %in% unique_both_interaction,]
+unique_additive_interaction <- unique(results_additive_interaction_sig_keep_only$keep_exp_med_out)
+
+all_results_interaction <- rbind(results_both_interaction_sig_keep,results_multiplicative_interaction_sig_keep_only,results_additive_interaction_sig_keep_only)
+unique_all_interaction <- unique(all_results_interaction$keep_exp_med_out)
+
+all_results_interaction$interaction_type <- ifelse(all_results_interaction$keep_exp_med_out %in% unique_both_interaction, "Both interaction",
+                                                   ifelse(all_results_interaction$keep_exp_med_out %in% unique_multiplicative_interaction, "Multiplicative interaction only",
+                                                          ifelse(all_results_interaction$keep_exp_med_out %in% unique_additive_interaction, "Additive interaction only","")))
+all_results_interaction$outcome <- gsub("_no_self_report","",all_results_interaction$outcome)
+all_results_interaction$keep_exp_med_out <- gsub("_no_self_report","",all_results_interaction$keep_exp_med_out)
+unique(all_results_interaction$keep_exp_med_out)
+#### 读取interaction分析结果 ####
+
 
 #### 限制条件1: 读取replication验证方向一致,且FDR-P<0.2的结果 ----
 # 验证队列中方向一致,且FDR-P<0.2的结果
@@ -158,7 +165,7 @@ results_acvd_replication <- readxl::read_xlsx("results/replication/replication_s
 results_acvd_replication <- results_acvd_replication %>%
   distinct(species)
 
-# 只保留验证结果与主结果菌种对于结局方向一致的菌种结果 #
+# 只保留验证结果与主结果菌种对于结局方向一致,且FDR-P<0.2的菌种结果 #
 all_results_interaction <- all_results_interaction[(all_results_interaction$OUTCOME == "DM" & all_results_interaction$mediator %in% results_dm_replication$species) |
                                                      (all_results_interaction$OUTCOME == "CKD" & all_results_interaction$mediator %in% results_ckd_replication$species) |
                                                      (all_results_interaction$OUTCOME == "CVD" & all_results_interaction$mediator %in% results_acvd_replication$species),]
@@ -169,20 +176,21 @@ dat_validate_same_direction_sig <- readxl::read_xlsx("results/cox/interaction/bo
 
 # 只保留敏感性分析与主结果一致的菌种 #
 all_results_interaction <- all_results_interaction[all_results_interaction$keep_exp_med_out %in% dat_validate_same_direction_sig$keep_exp_med_out,] # 只选取验证后的结果
-#### 限制条件️2: 读取sensitivity interaction分析验证后的结果 ####
+#### 限制条件2: 读取sensitivity interaction分析验证后的结果 ####
 
 
 #### interaction结果数据处理 ----
-all_results_interaction$exp.lci <- exp(all_results_interaction$coef - 1.96*all_results_interaction$se.coef.)
-all_results_interaction$exp.uci <- exp(all_results_interaction$coef + 1.96*all_results_interaction$se.coef.)
-
 all_results_interaction$text <- sprintf("%.3f (%.3f, %.3f)", all_results_interaction$exp.coef., all_results_interaction$exp.lci, all_results_interaction$exp.uci)
 
-all_results_interaction_short <- all_results_interaction[,c("rowname","keep_exp_med_out","group", "exposure","mediator","outcome","n","text","Pr...z..")]
+all_results_interaction <- all_results_interaction[all_results_interaction$rowname %in% c("EDC high","EDC high:GM high","EDC high:GM low","Multiplicative scale","RERI","AP","SI"),]
+all_results_interaction <- all_results_interaction[!(all_results_interaction$rowname %in% c("EDC high") & all_results_interaction$group %in% c("interaction_recode")),]
+
+all_results_interaction_short <- all_results_interaction[,c("rowname","keep_exp_med_out","group","interaction_type", "exposure","mediator","outcome","n","text","Pr...z..")]
 unique(all_results_interaction_short$keep_exp_med_out)
 
 
 # 排序 #
+all_results_interaction_short$sig_flag <- ifelse(all_results_interaction_short$Pr...z.. < 0.05, 1, 2)
 all_results_interaction_short$exposure_group <- ifelse(all_results_interaction_short$exposure %in% c("edc_count2_edc14_f","edc_score_edc14_f"), 1,
                                                        ifelse(all_results_interaction_short$exposure %in% c("edc_count2_pfas_f","edc_score_pfas_f",edc_traits2_log10), 2,
                                                               ifelse(all_results_interaction_short$exposure %in% c("edc_count2_pae6_f","edc_score_pae6_f",edc_traits3_log10), 3,
@@ -205,41 +213,44 @@ all_results_interaction_short$outcome <- factor(all_results_interaction_short$ou
                                                 labels = c("Diabetes","CKD","CVD"))
 
 # 挑选高菌群组EDC效应 #
-dat1 <- all_results_interaction_short[all_results_interaction_short$group == "mp4_high",c("keep_exp_med_out", "exposure","mediator","outcome","n","text","Pr...z..", "exposure_group")]
+dat1 <- all_results_interaction_short[all_results_interaction_short$group == "mp4_high",c("keep_exp_med_out","interaction_type", "exposure","mediator","outcome","n","text","Pr...z..", "exposure_group","sig_flag")]
 dat1 <- dat1 %>%
-  arrange(exposure_group,exposure,mediator,outcome)
+  arrange(exposure_group,sig_flag,exposure,mediator,outcome)
 
-dat1 <- dat1[,c("keep_exp_med_out", "exposure","mediator","outcome","n","text","Pr...z..")]
-colnames(dat1)[2:7] <- c("Analyte-based scores or individual analytes","Gut microbial species","Outcomes","N-high_mp4","HR (95% CI)-high_mp4","P value")
-# 挑选中菌群组EDC效应 #
-dat2 <- all_results_interaction_short[all_results_interaction_short$group == "mp4_middle",c("keep_exp_med_out","n","text","Pr...z..")]
-colnames(dat2)[2:4] <- c("N-middle_mp4","HR (95% CI)-middle_mp4","P value")
+dat1 <- dat1[,c("keep_exp_med_out","interaction_type", "exposure","mediator","outcome","n","text","Pr...z..")]
+colnames(dat1)[2:8] <- c("Interaction types","Analyte-based scores or individual analytes","Gut microbial species","Outcomes","N-high_mp4","HR (95% CI)-high_mp4","P value")
 # 挑选低菌群组EDC效应 #
-dat3 <- all_results_interaction_short[all_results_interaction_short$group == "mp4_low",c("keep_exp_med_out","n","text","Pr...z..")]
-colnames(dat3)[2:4] <- c("N-low_mp4","HR (95% CI)-low_mp4","P value")
+dat2 <- all_results_interaction_short[all_results_interaction_short$group == "mp4_low",c("keep_exp_med_out","n","text","Pr...z..")]
+colnames(dat2)[2:4] <- c("N-low_mp4","HR (95% CI)-low_mp4","P value")
 
 # 挑选multiplicative interaction效应 #
-dat4 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("edc_group1:mp4_group1"),c("keep_exp_med_out","rowname","text","Pr...z..")]
-dat4$rowname <- ifelse(dat4$rowname == "edc_group1:mp4_group1", "Low EDC and low species abundance", "")
-colnames(dat4)[2:4] <- c("Reference groups for interaction","Multiplicative scale (95% CI)","P for interaction")
+dat3 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("EDC high:GM high","EDC high:GM low"),c("keep_exp_med_out","rowname","text","Pr...z..")]
+dat3$rowname <- ifelse(dat3$rowname == "EDC high:GM high", "Low EDC and low species abundance", 
+                       ifelse(dat3$rowname == "EDC high:GM low", "Low EDC and high species abundance", ""))
+colnames(dat3)[2:4] <- c("Reference groups for interaction","Multiplicative scale (95% CI)","P for interaction")
 
-dat5 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("edc_group1:mp4_group2"),c("keep_exp_med_out","rowname","text","Pr...z..")]
-dat5$rowname <- ifelse(dat5$rowname == "edc_group1:mp4_group2", "Low EDC and low species abundance", "")
-colnames(dat5)[2:4] <- c("Reference groups for interaction","Multiplicative scale (95% CI)","P for interaction")
+# 挑选RERI效应 #
+dat4 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("RERI"),c("keep_exp_med_out","text")]
+colnames(dat4)[2] <- c("RERI (95% CI)")
+# 挑选AP效应 #
+dat5 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("AP"),c("keep_exp_med_out","text")]
+colnames(dat5)[2] <- c("AP (95% CI)")
+# 挑选SI效应 #
+dat6 <- all_results_interaction_short[all_results_interaction_short$rowname %in% c("SI"),c("keep_exp_med_out","text")]
+dat6$text <- ifelse(dat6$text == "NA (NA, NA)", "/", dat6$text)
+colnames(dat6)[2] <- c("SI (95% CI)")
 
-# 读取主结果 (保证敏感性分析结果和主结果对齐)
-dat_all_paimary_results <- readxl::read_xlsx("tables/(stable21)_interaction_results.xlsx")
-dat_all_paimary_results <- dat_all_paimary_results[,c(1:3)]
-  
 # 合并各项结果
-dat_all <- left_join(dat_all_paimary_results, dat1, by=c("Analyte-based scores or individual analytes","Gut microbial species","Outcomes")) %>%
-  left_join(dat2, by="keep_exp_med_out") %>%
+dat_all <- left_join(dat1, dat2, by="keep_exp_med_out") %>%
   left_join(dat3, by="keep_exp_med_out") %>%
   left_join(dat4, by="keep_exp_med_out") %>%
-  left_join(dat5, by="keep_exp_med_out")
+  left_join(dat5, by="keep_exp_med_out") %>%
+  left_join(dat6, by="keep_exp_med_out")
 
-dat_all[,c(4,5,8,11)] <- NULL
+write.table(dat_all$keep_exp_med_out, "results/cox/interaction/final_17_pairs_for_stable.txt", row.names = FALSE)
+
+dat_all[,c(1:2,6,9)] <- NULL
 #### interaction结果数据处理 ####
 
 
-openxlsx::write.xlsx(dat_all,paste0("tables/(stable22)_interaction_sensitivity_results.xlsx"))
+openxlsx::write.xlsx(dat_all,paste0("tables/(stable21)_interaction_results.xlsx"))
