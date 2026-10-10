@@ -30,21 +30,21 @@ nhanes_dat <- read.csv("raw_data/nhanes_dat_2003-2018_for_analysis.csv")
 #### Subgroup for analysis ####
 
 #### 变量整理 ----
-# 菌群2014菌群 (分类和连续)
-# 丰度>0.0001, 出现率>10%的微生物 (物种和属)
-mp4_s_names <- colnames(micro_dat)[3:361]
-mp4_g_names <- colnames(micro_dat)[721:912]
-# 排除未分类的菌属（GGB）和菌种（SGB） #
-mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
-mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
-# 排除未分类的菌属（GGB）和菌种（SGB） #
-
-# 转换后的菌的名称
-mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
-mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
-
-mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
-mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
+# # 菌群2014菌群 (分类和连续)
+# # 丰度>0.0001, 出现率>10%的微生物 (物种和属)
+# mp4_s_names <- colnames(micro_dat)[3:361]
+# mp4_g_names <- colnames(micro_dat)[721:912]
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# mp4_s_names_short <- mp4_s_names[!grepl("_GGB",mp4_s_names)] # 排除未分类的菌属（GGB）, 未分类菌种（SGB）先保留
+# mp4_g_names_short <- mp4_g_names[!grepl("_GGB",mp4_g_names)] # 排除未分类的菌属（GGB）
+# # 排除未分类的菌属（GGB）和菌种（SGB） #
+# 
+# # 转换后的菌的名称
+# mp4_s_log10 <- paste0(mp4_s_names,"_log10") # 菌群MP4丰度的log10转换 (物种层面)
+# mp4_s_log10_short <- paste0(mp4_s_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 物种层面)
+# 
+# mp4_g_log10 <- paste0(mp4_g_names,"_log10") # 菌群MP4丰度的log10转换 (属层面)
+# mp4_g_log10_short <- paste0(mp4_g_names_short,"_log10") # 菌群MP4丰度的log10转换 (有鉴定菌属, 属层面)
 
 
 # 2010污染物 (连续)
